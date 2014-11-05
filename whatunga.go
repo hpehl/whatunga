@@ -87,6 +87,7 @@ func main() {
 	}
 
 	// Open existing project or create new one?
+	wd, _ := os.Getwd()
 	directory := flag.Arg(0)
 	fileInfo, err := os.Stat(directory)
 
@@ -95,7 +96,7 @@ func main() {
 		if err != nil {
 			wrongUsage(err.Error())
 		}
-		shell(fmt.Sprintf(`Start with new project "%s" in "%s"`, project.Name, directory), project)
+		shell(fmt.Sprintf(`Start with new project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
 
 	} else if fileInfo.Mode().IsDir() {
 		// Check for WhatungaJson
@@ -107,7 +108,7 @@ func main() {
 		if err != nil {
 			wrongUsage(err.Error())
 		}
-		shell(fmt.Sprintf(`Open existing project "%s" in "%s"`, project.Name, directory), project)
+		shell(fmt.Sprintf(`Open existing project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
 
 	} else {
 		wrongUsage(fmt.Sprintf("\"%s\" is not a directory!", directory))

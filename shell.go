@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"bufio"
+	"fmt"
+	"os"
+)
 
 var welcome = `
  __      __.__            __
@@ -35,7 +39,19 @@ type autoComplete func(from state, input string) []string
 
 func shell(info string, project *Project) {
 	fmt.Printf("%s\n\n%s\n\n%s\n\n", info, welcome, Version())
+	scanner := bufio.NewScanner(os.Stdin)
 	prompt(project)
+	for scanner.Scan() {
+		cmd := scanner.Text()
+		if cmd == "exit" {
+			break
+		}
+		fmt.Println(cmd)
+		prompt(project)
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	}
 }
 
 func prompt(project *Project) {
