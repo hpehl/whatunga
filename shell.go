@@ -17,4 +17,4 @@ const (
 )
 
 // A function which returns a list of possible options for a state
-type autoComplete func(st state, input string) []string
+type autoComplete func(from state, input string) []string

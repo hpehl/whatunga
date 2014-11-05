@@ -1,12 +1,12 @@
 package main
 
-var Predefined = map[ProductVersion]Templates{
+var Predefined = map[Target]Templates{
 	/* ------------------------- */
 	/*                           */
 	/*  WildFly 8.0              */
 	/*                           */
 	/* ------------------------- */
-	ProductVersion{WildFly, "8.0"}: Templates{
+	Target{WildFly, "8.0"}: Templates{
 		Domain:     `domain.xml...`,
 		HostMaster: `host-master.xml...`,
 		HostSlave:  `host-slave.xml...`,
@@ -16,7 +16,7 @@ var Predefined = map[ProductVersion]Templates{
 	/*  WildFly 8.1              */
 	/*                           */
 	/* ------------------------- */
-	ProductVersion{WildFly, "8.1"}: Templates{
+	Target{WildFly, "8.1"}: Templates{
 		Domain:     `domain.xml...`,
 		HostMaster: `host-master.xml...`,
 		HostSlave:  `host-slave.xml...`,
@@ -26,7 +26,7 @@ var Predefined = map[ProductVersion]Templates{
 	/*  EAP 6.3                  */
 	/*                           */
 	/* ------------------------- */
-	ProductVersion{EAP, "6.3"}: Templates{
+	Target{EAP, "6.3"}: Templates{
 		Domain:     `domain.xml...`,
 		HostMaster: `host-master.xml...`,
 		HostSlave:  `host-slave.xml...`,
