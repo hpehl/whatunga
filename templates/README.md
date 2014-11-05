@@ -1,1 +1,1 @@
-This folder is not part of the binary. Instead it's here in order to easily recreate `templates.go`.
+The files in this folder are not part of the compiled binary. Instead they're here to easily recreate `templates.go`.
