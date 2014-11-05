@@ -57,8 +57,6 @@ var targetFlag Target = supportedTargets[1]
 var nameFlag string
 var versionFlag string
 
-var project *Project
-
 func init() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [--target=target] [--name=name] [--version=version] <directory>\n\n", AppName)
@@ -90,16 +88,19 @@ func main() {
 	fileInfo, err := os.Stat(directory)
 
 	if os.IsNotExist(err) {
-		project = newProject(directory, nameFlag, versionFlag, targetFlag)
+		if _, err := newProject(directory, nameFlag, versionFlag, targetFlag); err != nil {
+			wrongUsage(err.Error())
+		}
 
 	} else if fileInfo.Mode().IsDir() {
 		// Check for WhatungaJson
 		fullyQualifiedWhatungaJson := path.Join(directory, WhatungaJson)
-		_, err := os.Stat(fullyQualifiedWhatungaJson)
-		if os.IsNotExist(err) {
+		if _, err := os.Stat(fullyQualifiedWhatungaJson); os.IsNotExist(err) {
 			wrongUsage(fmt.Sprintf("Missing project file \"%s\"!", fullyQualifiedWhatungaJson))
 		}
-		project = openProject(directory)
+		if _, err := openProject(directory); err != nil {
+			wrongUsage(err.Error())
+		}
 
 	} else {
 		wrongUsage(fmt.Sprintf("\"%s\" is not a directory!", directory))
@@ -113,18 +114,32 @@ func wrongUsage(why string) {
 	flag.Usage()
 }
 
-func newProject(directory string, name string, version string, target Target) *Project {
+func newProject(directory string, name string, version string, target Target) (*Project, error) {
 	var perm os.FileMode = 0755
 
-	os.MkdirAll(directory, perm)
-	os.Chdir(directory)
-	os.Mkdir("templates", perm)
-	createTemplate(target, "domain.xml")
-	createTemplate(target, "host-master.xml")
-	createTemplate(target, "host-slave.xml")
-	os.Mkdir("downloads", perm)
+	if err := os.MkdirAll(directory, perm); err != nil {
+		return nil, err
+	}
+	if err := os.Chdir(directory); err != nil {
+		return nil, err
+	}
+	if err := os.Mkdir("templates", perm); err != nil {
+		return nil, err
+	}
+	if err := createTemplate(target, "domain.xml"); err != nil {
+		return nil, err
+	}
+	if err := createTemplate(target, "host-master.xml"); err != nil {
+		return nil, err
+	}
+	if err := createTemplate(target, "host-slave.xml"); err != nil {
+		return nil, err
+	}
+	if err := os.Mkdir("downloads", perm); err != nil {
+		return nil, err
+	}
 
-	project = &Project{
+	project := &Project{
 		Name:    name,
 		Version: version,
 		Config: Config{
@@ -148,29 +163,48 @@ func newProject(directory string, name string, version string, target Target) *P
 		Users:        []User{},
 	}
 
-	b, _ := json.MarshalIndent(project, "", "  ")
-	f, _ := os.Create(WhatungaJson)
+	b, err := json.MarshalIndent(project, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.Create(WhatungaJson)
+	if err != nil {
+		return nil, err
+	}
 	defer f.Close()
 
-	f.Write(b)
-	f.Sync()
+	if _, err := f.Write(b); err != nil {
+		return nil, err
+	}
+	if err := f.Sync(); err != nil {
+		return nil, err
+	}
 
-	return project
+	return project, nil
 }
 
-func createTemplate(target Target, name string) {
-	f, _ := os.Create(path.Join("templates", name))
+func createTemplate(target Target, name string) error {
+	f, err := os.Create(path.Join("templates", name))
+	if err != nil {
+		return err
+	}
 	defer f.Close()
 
 	template := path.Join("templates", target.Name, target.Version, name)
-	data, _ := Asset(template)
+	data, err := Asset(template)
+	if err != nil {
+		return err
+	}
+
 	f.Write(data)
 	f.Sync()
+
+	return nil
 }
 
-func openProject(directory string) *Project {
+func openProject(directory string) (*Project, error) {
 	os.Chdir(directory)
 
 	// TODO Load WhatungaJson
-	return nil
+	return nil, nil
 }
