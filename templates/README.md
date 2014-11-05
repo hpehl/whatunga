@@ -1,0 +1,1 @@
+This folder is not part of the binary. Instead it's here in order to easily recreate `templates.go`.

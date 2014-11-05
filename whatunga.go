@@ -54,8 +54,6 @@ var supportedTargets = []Target{
 }
 
 var targetFlag Target = supportedTargets[1]
-
-// default value
 var nameFlag string
 var versionFlag string
 
@@ -63,13 +61,13 @@ var project *Project
 
 func init() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage %s [--target=target] [--name=name] [--version=version] <directory>\n", AppName)
+		fmt.Fprintf(os.Stderr, "Usage: %s [--target=target] [--name=name] [--version=version] <directory>\n\n", AppName)
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 	flag.Var(&targetFlag, "target", fmt.Sprintf("Specifies the target. Valid targets: %v.", supportedTargets))
 	flag.StringVar(&nameFlag, "name", "", "The name of the project. If you omit the name, the directories name is taken.")
-	flag.StringVar(&versionFlag, "version", "1.0", `The version which is "1.0" by default.`)
+	flag.StringVar(&versionFlag, "version", "1.0", `The project version which is "1.0" by default.`)
 }
 
 func main() {
@@ -77,11 +75,9 @@ func main() {
 
 	// Verify the correct number of arguments
 	if flag.NArg() == 0 {
-		fmt.Fprintf(os.Stderr, "No directory given!\n\n")
-		flag.Usage()
+		wrongUsage("No directory given!")
 	} else if flag.NArg() > 1 {
-		fmt.Fprintf(os.Stderr, "Wrong number of arguments!\n\n")
-		flag.Usage()
+		wrongUsage("Wrong number of arguments!")
 	}
 
 	// if name is not given, use the directory as default
@@ -94,29 +90,35 @@ func main() {
 	if os.IsNotExist(err) {
 		project = newProject(directory, nameFlag, versionFlag, targetFlag)
 	} else if fileInfo.Mode().IsDir() {
-		// TODO Check for WhatungaJson
+		// Check for WhatungaJson
+		fullyQualifiedWhatungaJson := path.Join(directory, WhatungaJson)
+		_, err := os.Stat(fullyQualifiedWhatungaJson)
+		if os.IsNotExist(err) {
+			wrongUsage(fmt.Sprintf("Missing project file \"%s\"!", fullyQualifiedWhatungaJson))
+		}
 		project = openProject(directory)
 	} else {
-		fmt.Fprintf(os.Stderr, "\"%s\" is not a directory!\n\n", directory)
-		flag.Usage()
+		wrongUsage(fmt.Sprintf("\"%s\" is not a directory!", directory))
 	}
 
 	// TODO Setup file watcher for whatunga.json and the templates
 }
 
-func newProject(directory string, name string, version string, target Target) *Project {
-	fmt.Printf("Creating new project %s in directory %s targeting %v....", name, directory, target)
+func wrongUsage(why string) {
+	fmt.Fprintf(os.Stderr, "%s\n\n", why)
+	flag.Usage()
+}
 
+func newProject(directory string, name string, version string, target Target) *Project {
 	var perm os.FileMode = 0755
 
-	os.Mkdir(directory, perm)
+	os.MkdirAll(directory, perm)
 	os.Chdir(directory)
 	os.Mkdir("templates", perm)
+	createTemplate(target, "domain.xml")
+	createTemplate(target, "host-master.xml")
+	createTemplate(target, "host-slave.xml")
 	os.Mkdir("downloads", perm)
-
-	fmt.Println("DONE")
-
-	// TODO Create templates
 
 	project = &Project{
 		Name:    name,
@@ -152,33 +154,19 @@ func newProject(directory string, name string, version string, target Target) *P
 	return project
 }
 
-func openProject(directory string) *Project {
-	fmt.Printf("Opening existing project in directory %s....", directory)
-	os.Chdir(directory)
-	fmt.Println("DONE")
+func createTemplate(target Target, name string) {
+	f, _ := os.Create(path.Join("templates", name))
+	defer f.Close()
 
-	project = &Project{
-		Name:    "",
-		Version: "",
-		Config: Config{
-			Templates: Templates{
-				Domain:     "templates/domain.xml",
-				HostMaster: "templates/host-master.xml",
-				HostSlave:  "templates/host-slave.xml",
-			},
-			ConsoleUser: User{
-				Name:     "admin",
-				Password: "passw0rd_",
-			},
-			DomainUser: User{
-				Name:     "domain",
-				Password: "passw0rd_",
-			},
-			DockerRemoteAPI: "unix:///var/run/docker.sock",
-		},
-		ServerGroups: []ServerGroup{},
-		Hosts:        []Host{},
-		Users:        []User{},
-	}
-	return project
+	template := path.Join("templates", target.Name, target.Version, name)
+	data, _ := Asset(template)
+	f.Write(data)
+	f.Sync()
+}
+
+func openProject(directory string) *Project {
+	os.Chdir(directory)
+
+	// TODO Load WhatungaJson
+	return nil
 }
