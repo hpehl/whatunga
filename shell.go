@@ -33,13 +33,13 @@ const (
 )
 
 //var currentState state = COMMANDS
-var workingDir string = "/"
+var WorkingDir string = "/"
 
 // A function which returns a list of possible options for a state
 //type autoComplete func(from state, input string) []string
 
 func shell(info string, project *Project) {
-	fmt.Printf("%s\n\n%s\n\n%s\n\n", info, welcome, Version())
+	fmt.Printf("%s\n\n%s\n\n%s\n", info, welcome, Version())
 	prompt(project)
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -50,20 +50,22 @@ func shell(info string, project *Project) {
 			continue
 		}
 
-		var cmdTokens []string
+		var tokens []string
 		words := bufio.NewScanner(strings.NewReader(cmdLine))
 		words.Split(bufio.ScanWords)
 		for words.Scan() {
-			cmdTokens = append(cmdTokens, words.Text())
+			tokens = append(tokens, words.Text())
 		}
 
-		cmd, valid := knownCommands[cmdTokens[0]]
+		cmd, valid := CommandRegistry[tokens[0]]
 		if !valid {
-			fmt.Printf("Unknown command: \"%s\"\n", cmdTokens[0])
+			fmt.Printf("\nUnknown command: \"%s\"\n", tokens[0])
 			prompt(project)
 			continue
 		}
-		cmd.action(project)
+		if err := cmd(project, tokens[1:]); err != nil {
+			fmt.Printf("\n%s\n", err.Error())
+		}
 		prompt(project)
 	}
 	if err := scanner.Err(); err != nil {
@@ -72,5 +74,5 @@ func shell(info string, project *Project) {
 }
 
 func prompt(project *Project) {
-	fmt.Printf("[%s %s @ %s ]> ", project.Name, project.Version, workingDir)
+	fmt.Printf("\n[%s:%s @ %s ]> ", project.Name, project.Version, WorkingDir)
 }
