@@ -1,10 +1,25 @@
 package main
 
-// Sqrt returns an approximation to the square root of x.
-func Sqrt(x float64) float64 {
-	z := 1.0
-	for i := 0; i < 1000; i++ {
-		z -= (z*z - x) / (2 * z)
-	}
-	return z
+import (
+	"fmt"
+	"os"
+)
+
+type Command struct {
+	name   string
+	action func(*Project) error
+}
+
+func nyi(_ *Project) error {
+	fmt.Println("Not yet implemented")
+	return nil
+}
+
+var knownCommands = map[string]Command{
+	"show": Command{"show", nyi},
+	"exit": Command{"exit", func(_ *Project) error {
+		fmt.Println("\nHaere rā")
+		os.Exit(0)
+		return nil
+	}},
 }

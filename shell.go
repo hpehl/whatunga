@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 )
 
 var welcome = `
@@ -39,14 +40,30 @@ var workingDir string = "/"
 
 func shell(info string, project *Project) {
 	fmt.Printf("%s\n\n%s\n\n%s\n\n", info, welcome, Version())
-	scanner := bufio.NewScanner(os.Stdin)
 	prompt(project)
+
+	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		cmd := scanner.Text()
-		if cmd == "exit" {
-			break
+		cmdLine := scanner.Text()
+		if cmdLine == "" {
+			prompt(project)
+			continue
 		}
-		fmt.Println(cmd)
+
+		var cmdTokens []string
+		words := bufio.NewScanner(strings.NewReader(cmdLine))
+		words.Split(bufio.ScanWords)
+		for words.Scan() {
+			cmdTokens = append(cmdTokens, words.Text())
+		}
+
+		cmd, valid := knownCommands[cmdTokens[0]]
+		if !valid {
+			fmt.Printf("Unknown command: \"%s\"\n", cmdTokens[0])
+			prompt(project)
+			continue
+		}
+		cmd.action(project)
 		prompt(project)
 	}
 	if err := scanner.Err(); err != nil {
