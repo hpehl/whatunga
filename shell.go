@@ -31,11 +31,11 @@ const (
 	VALIDATE            = iota
 )
 
-var currentState state = COMMANDS
+//var currentState state = COMMANDS
 var workingDir string = "/"
 
 // A function which returns a list of possible options for a state
-type autoComplete func(from state, input string) []string
+//type autoComplete func(from state, input string) []string
 
 func shell(info string, project *Project) {
 	fmt.Printf("%s\n\n%s\n\n%s\n\n", info, welcome, Version())
@@ -50,7 +50,7 @@ func shell(info string, project *Project) {
 		prompt(project)
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		fmt.Fprintln(os.Stderr, "Error reading command:", err)
 	}
 }
 
