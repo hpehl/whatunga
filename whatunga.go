@@ -84,11 +84,14 @@ func main() {
 	if nameFlag == "" {
 		nameFlag = path.Base(flag.Arg(0))
 	}
+
 	// Open existing project or create new one?
 	directory := flag.Arg(0)
 	fileInfo, err := os.Stat(directory)
+
 	if os.IsNotExist(err) {
 		project = newProject(directory, nameFlag, versionFlag, targetFlag)
+
 	} else if fileInfo.Mode().IsDir() {
 		// Check for WhatungaJson
 		fullyQualifiedWhatungaJson := path.Join(directory, WhatungaJson)
@@ -97,11 +100,12 @@ func main() {
 			wrongUsage(fmt.Sprintf("Missing project file \"%s\"!", fullyQualifiedWhatungaJson))
 		}
 		project = openProject(directory)
+
 	} else {
 		wrongUsage(fmt.Sprintf("\"%s\" is not a directory!", directory))
 	}
 
-	// TODO Setup file watcher for whatunga.json and the templates
+	// TODO Setup file watchers for WhatungaJson and the templates
 }
 
 func wrongUsage(why string) {
@@ -134,7 +138,7 @@ func newProject(directory string, name string, version string, target Target) *P
 				Password: "passw0rd_",
 			},
 			DomainUser: User{
-				Name:     "domain",
+				Name:     "dc",
 				Password: "passw0rd_",
 			},
 			DockerRemoteAPI: "unix:///var/run/docker.sock",
