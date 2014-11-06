@@ -9,18 +9,14 @@ import (
 
 type Command func(*Project, []string) error
 
-func help(_ *Project, _ []string) error {
-	fmt.Println("\nRTFM")
-	return nil
-}
-
 func show(project *Project, args []string) error {
 	if len(args) == 0 {
-		return errors.New("Missing argument.\nUsage: show config|server-groups|hosts|source|docker")
+		return errors.New("Missing argument. Usage: show config|server-groups|hosts|source|docker")
 	}
 	if len(args) > 1 {
-		return errors.New("Too many arguments.\nUsage: show config|server-groups|hosts|source|docker")
+		return errors.New("Too many arguments. Usage: show config|server-groups|hosts|source|docker")
 	}
+
 	switch args[0] {
 	case "config":
 		fmt.Printf("\n%s\n", project.Config)
@@ -39,17 +35,17 @@ func show(project *Project, args []string) error {
 		fmt.Printf("\nDocker not yet implemented\n")
 	default:
 		return errors.New(
-			fmt.Sprintf(`Unsupported argument "%s".\nUsage: show config|server-groups|hosts|source|docker`, args[0]))
+			fmt.Sprintf(`Unsupported argument "%s". Usage: show config|server-groups|hosts|source|docker`, args[0]))
 	}
 	return nil
 }
 
 func cd(_ *Project, args []string) error {
 	if len(args) == 0 {
-		return errors.New("Missing argument.\nUsage: cd path")
+		return errors.New("Missing argument. Usage: cd path")
 	}
 	if len(args) > 1 {
-		return errors.New("Too many arguments.\nUsage: cd path")
+		return errors.New("Too many arguments. Usage: cd path")
 	}
 
 	// TODO validate path
@@ -59,44 +55,44 @@ func cd(_ *Project, args []string) error {
 
 func add(_ *Project, args []string) error {
 	if len(args) == 0 {
-		return errors.New("Missing arguments.\nUsage: add server-group|host|server|deployment|user value,... [--times=n]")
+		return errors.New("Missing arguments. Usage: add server-group|host|server|deployment|user value,... [--times=n]")
 	}
 	return nil
 }
 
 func set(_ *Project, args []string) error {
 	if len(args) == 0 {
-		return errors.New("Missing arguments.\nUsage: set path value,...")
+		return errors.New("Missing arguments. Usage: set path value,...")
 	}
 	if len(args) > 2 {
-		return errors.New("Too many arguments.\nUsage: set path value,...")
+		return errors.New("Too many arguments. Usage: set path value,...")
 	}
 	return nil
 }
 
 func rm(_ *Project, args []string) error {
 	if len(args) == 0 {
-		return errors.New("Missing argument.\nUsage: rm path")
+		return errors.New("Missing argument. Usage: rm path")
 	}
 	if len(args) > 1 {
-		return errors.New("Too many arguments.\nUsage: rm path")
+		return errors.New("Too many arguments. Usage: rm path")
 	}
 	return nil
 }
 
 func validate(_ *Project, args []string) error {
 	if len(args) != 0 {
-		return errors.New("Illegal argument.\nUsage: validate")
+		return errors.New("Illegal argument. Usage: validate")
 	}
 	return nil
 }
 
 func docker(_ *Project, args []string) error {
 	if len(args) == 0 {
-		return errors.New("Missing argument.\nUsage: docker create|start")
+		return errors.New("Missing argument. Usage: docker create|start")
 	}
 	if len(args) > 1 {
-		return errors.New("Too many arguments.\nUsage: docker create|start")
+		return errors.New("Too many arguments. Usage: docker create|start")
 	}
 	switch args[0] {
 	case "create":
@@ -105,7 +101,7 @@ func docker(_ *Project, args []string) error {
 		fmt.Printf("\nDocker start...\n")
 	default:
 		return errors.New(
-			fmt.Sprintf(`Unsupported argument "%s".\nUsage: docker create|start`, args[0]))
+			fmt.Sprintf(`Unsupported argument "%s". Usage: docker create|start`, args[0]))
 	}
 	return nil
 }
