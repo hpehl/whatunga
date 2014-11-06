@@ -16,27 +16,8 @@ var welcome = `
        \/       \/     \/                \//_____/     \/
 `
 
-// State constants
-type state uint
-
-const (
-	COMMANDS      state = iota
-	HELP                = iota
-	SHOW                = iota
-	ADD_TYPE            = iota
-	ADD_PATH            = iota
-	ADD_VALUE           = iota
-	ADD_PARAMETER       = iota
-	SET_PATH            = iota
-	RM                  = iota
-	VALIDATE            = iota
-)
-
 //var currentState state = COMMANDS
-var WorkingDir string = "/"
-
-// A function which returns a list of possible options for a state
-//type autoComplete func(from state, input string) []string
+var workingDir string = "/"
 
 func shell(info string, project *Project) {
 	fmt.Printf("%s\n\n%s\n\n%s\n", info, welcome, Version())
@@ -57,7 +38,7 @@ func shell(info string, project *Project) {
 			tokens = append(tokens, words.Text())
 		}
 
-		cmd, valid := CommandRegistry[tokens[0]]
+		cmd, valid := commandRegistry[tokens[0]]
 		if !valid {
 			fmt.Printf("\nUnknown command: \"%s\"\n", tokens[0])
 			prompt(project)
@@ -74,5 +55,5 @@ func shell(info string, project *Project) {
 }
 
 func prompt(project *Project) {
-	fmt.Printf("\n[%s:%s @ %s ]> ", project.Name, project.Version, WorkingDir)
+	fmt.Printf("\n[%s:%s @ %s ]> ", project.Name, project.Version, workingDir)
 }

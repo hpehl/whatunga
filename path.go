@@ -11,14 +11,14 @@ import (
 // this template was parsed.
 type Pos int
 
-// item represents a token or text string returned from the scanner.
-type item struct {
-	typ itemType // The type of this item.
-	pos Pos      // The starting position, in bytes, of this item in the input string.
-	val string   // The value of this item.
+// Item represents a token or text string returned from the scanner.
+type Item struct {
+	typ ItemType // The type of this Item.
+	pos Pos      // The starting position, in bytes, of this Item in the input string.
+	val string   // The value of this Item.
 }
 
-func (i item) String() string {
+func (i Item) String() string {
 	switch {
 	case i.typ == itemEOF:
 		return "EOF"
@@ -32,11 +32,11 @@ func (i item) String() string {
 	return fmt.Sprintf("%q", i.val)
 }
 
-// itemType identifies the type of lex items.
-type itemType int
+// ItemType identifies the type of lex items.
+type ItemType int
 
 const (
-	itemError        itemType = iota // error occurred; value is text of error
+	itemError        ItemType = iota // error occurred; value is text of error
 	itemBool                         // boolean constant
 	itemChar                         // printable ASCII character; grab bag for comma etc.
 	itemCharConstant                 // character constant
@@ -69,7 +69,7 @@ const (
 	itemWith     // with keyword
 )
 
-var key = map[string]itemType{
+var key = map[string]ItemType{
 	".":        itemDot,
 	"define":   itemDefine,
 	"else":     itemElse,
@@ -83,8 +83,8 @@ var key = map[string]itemType{
 
 const eof = -1
 
-// stateFn represents the state of the scanner as a function that returns the next state.
-type stateFn func(*lexer) stateFn
+// StateFn represents the state of the scanner as a function that returns the next state.
+type StateFn func(*lexer) StateFn
 
 // lexer holds the state of the scanner.
 type lexer struct {
@@ -92,12 +92,12 @@ type lexer struct {
 	input      string    // the string being scanned
 	leftDelim  string    // start of action
 	rightDelim string    // end of action
-	state      stateFn   // the next lexing function to enter
+	state      StateFn   // the next lexing function to enter
 	pos        Pos       // current position in the input
-	start      Pos       // start position of this item
+	start      Pos       // start position of this Item
 	width      Pos       // width of last rune read from input
-	lastPos    Pos       // position of most recent item returned by nextItem
-	items      chan item // channel of scanned items
+	lastPos    Pos       // position of most recent Item returned by nextItem
+	items      chan Item // channel of scanned items
 	parenDepth int       // nesting depth of ( ) exprs
 }
 
@@ -125,9 +125,9 @@ func (l *lexer) backup() {
 	l.pos -= l.width
 }
 
-// emit passes an item back to the client.
-func (l *lexer) emit(t itemType) {
-	l.items <- item{t, l.start, l.input[l.start:l.pos]}
+// emit passes an Item back to the client.
+func (l *lexer) emit(t ItemType) {
+	l.items <- Item{t, l.start, l.input[l.start:l.pos]}
 	l.start = l.pos
 }
 
@@ -153,7 +153,7 @@ func (l *lexer) acceptRun(valid string) {
 }
 
 // lineNumber reports which line we're on, based on the position of
-// the previous item returned by nextItem. Doing it this way
+// the previous Item returned by nextItem. Doing it this way
 // means we don't have to worry about peek double counting.
 func (l *lexer) lineNumber() int {
 	return 1 + strings.Count(l.input[:l.lastPos], "\n")
@@ -161,16 +161,16 @@ func (l *lexer) lineNumber() int {
 
 // errorf returns an error token and terminates the scan by passing
 // back a nil pointer that will be the next state, terminating l.nextItem.
-func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	l.items <- item{itemError, l.start, fmt.Sprintf(format, args...)}
+func (l *lexer) errorf(format string, args ...interface{}) StateFn {
+	l.items <- Item{itemError, l.start, fmt.Sprintf(format, args...)}
 	return nil
 }
 
-// nextItem returns the next item from the input.
-func (l *lexer) nextItem() item {
-	item := <-l.items
-	l.lastPos = item.pos
-	return item
+// nextItem returns the next Item from the input.
+func (l *lexer) nextItem() Item {
+	Item := <-l.items
+	l.lastPos = Item.pos
+	return Item
 }
 
 // lex creates a new scanner for the input string.
@@ -186,7 +186,7 @@ func lex(name, input, left, right string) *lexer {
 		input:      input,
 		leftDelim:  left,
 		rightDelim: right,
-		items:      make(chan item),
+		items:      make(chan Item),
 	}
 	go l.run()
 	return l
@@ -209,7 +209,7 @@ const (
 )
 
 // lexText scans until an opening action delimiter, "{{".
-func lexText(l *lexer) stateFn {
+func lexText(l *lexer) StateFn {
 	for {
 		if strings.HasPrefix(l.input[l.pos:], l.leftDelim) {
 			if l.pos > l.start {
@@ -230,7 +230,7 @@ func lexText(l *lexer) stateFn {
 }
 
 // lexLeftDelim scans the left delimiter, which is known to be present.
-func lexLeftDelim(l *lexer) stateFn {
+func lexLeftDelim(l *lexer) StateFn {
 	l.pos += Pos(len(l.leftDelim))
 	if strings.HasPrefix(l.input[l.pos:], leftComment) {
 		return lexComment
@@ -241,7 +241,7 @@ func lexLeftDelim(l *lexer) stateFn {
 }
 
 // lexComment scans a comment. The left comment marker is known to be present.
-func lexComment(l *lexer) stateFn {
+func lexComment(l *lexer) StateFn {
 	l.pos += Pos(len(leftComment))
 	i := strings.Index(l.input[l.pos:], rightComment)
 	if i < 0 {
@@ -258,14 +258,14 @@ func lexComment(l *lexer) stateFn {
 }
 
 // lexRightDelim scans the right delimiter, which is known to be present.
-func lexRightDelim(l *lexer) stateFn {
+func lexRightDelim(l *lexer) StateFn {
 	l.pos += Pos(len(l.rightDelim))
 	l.emit(itemRightDelim)
 	return lexText
 }
 
 // lexInsideAction scans the elements inside action delimiters.
-func lexInsideAction(l *lexer) stateFn {
+func lexInsideAction(l *lexer) StateFn {
 	// Either number, quoted string, or identifier.
 	// Spaces separate arguments; runs of spaces turn into itemSpace.
 	// Pipe symbols separate and are emitted.
@@ -332,7 +332,7 @@ func lexInsideAction(l *lexer) stateFn {
 
 // lexSpace scans a run of space characters.
 // One space has already been seen.
-func lexSpace(l *lexer) stateFn {
+func lexSpace(l *lexer) StateFn {
 	for isSpace(l.peek()) {
 		l.next()
 	}
@@ -341,7 +341,7 @@ func lexSpace(l *lexer) stateFn {
 }
 
 // lexIdentifier scans an alphanumeric.
-func lexIdentifier(l *lexer) stateFn {
+func lexIdentifier(l *lexer) StateFn {
 Loop:
 	for {
 		switch r := l.next(); {
@@ -371,13 +371,13 @@ Loop:
 
 // lexField scans a field: .Alphanumeric.
 // The . has been scanned.
-func lexField(l *lexer) stateFn {
+func lexField(l *lexer) StateFn {
 	return lexFieldOrVariable(l, itemField)
 }
 
 // lexVariable scans a Variable: $Alphanumeric.
 // The $ has been scanned.
-func lexVariable(l *lexer) stateFn {
+func lexVariable(l *lexer) StateFn {
 	if l.atTerminator() { // Nothing interesting follows -> "$".
 		l.emit(itemVariable)
 		return lexInsideAction
@@ -387,7 +387,7 @@ func lexVariable(l *lexer) stateFn {
 
 // lexVariable scans a field or variable: [.$]Alphanumeric.
 // The . or $ has been scanned.
-func lexFieldOrVariable(l *lexer, typ itemType) stateFn {
+func lexFieldOrVariable(l *lexer, typ ItemType) StateFn {
 	if l.atTerminator() { // Nothing interesting follows -> "." or "$".
 		if typ == itemVariable {
 			l.emit(itemVariable)
@@ -435,7 +435,7 @@ func (l *lexer) atTerminator() bool {
 
 // lexChar scans a character constant. The initial quote is already
 // scanned. Syntax checking is done by the parser.
-func lexChar(l *lexer) stateFn {
+func lexChar(l *lexer) StateFn {
 Loop:
 	for {
 		switch l.next() {
@@ -458,7 +458,7 @@ Loop:
 // isn't a perfect number scanner - for instance it accepts "." and "0x0.2"
 // and "089" - but when it's wrong the input is invalid and the parser (via
 // strconv) will notice.
-func lexNumber(l *lexer) stateFn {
+func lexNumber(l *lexer) StateFn {
 	if !l.scanNumber() {
 		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
 	}
@@ -501,7 +501,7 @@ func (l *lexer) scanNumber() bool {
 }
 
 // lexQuote scans a quoted string.
-func lexQuote(l *lexer) stateFn {
+func lexQuote(l *lexer) StateFn {
 Loop:
 	for {
 		switch l.next() {
@@ -521,7 +521,7 @@ Loop:
 }
 
 // lexRawQuote scans a raw quoted string.
-func lexRawQuote(l *lexer) stateFn {
+func lexRawQuote(l *lexer) StateFn {
 Loop:
 	for {
 		switch l.next() {

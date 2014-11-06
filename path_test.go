@@ -7,13 +7,7 @@ import (
 
 func TestPath(_ *testing.T) {
 	l := lex("name", "some {{.in}} put", "{{", "}}")
-	var items []item
-	for {
-		item := l.nextItem()
-		items = append(items, item)
-		if item.typ == itemEOF || item.typ == itemError {
-			break
-		}
+	for item := range l.items {
+		fmt.Println("Item: ", item)
 	}
-	fmt.Println("Items: ", items)
 }

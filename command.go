@@ -49,7 +49,7 @@ func cd(_ *Project, args []string) error {
 	}
 
 	// TODO validate path
-	WorkingDir = args[0]
+	workingDir = args[0]
 	return nil
 }
 
@@ -106,7 +106,7 @@ func docker(_ *Project, args []string) error {
 	return nil
 }
 
-var CommandRegistry = map[string]Command{
+var commandRegistry = map[string]Command{
 	"help":     help,
 	"show":     show,
 	"cd":       cd,
