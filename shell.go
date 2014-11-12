@@ -1,8 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"github.com/bobappleyard/readline"
+	"io"
 	"os"
 	"strings"
 )
@@ -21,23 +22,22 @@ var workingDir string = "/"
 
 func shell(info string, project *Project) {
 	fmt.Printf("%s\n\n%s\n\n%s\n", info, welcome, Version())
-	prompt(project)
 
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		cmdLine := scanner.Text()
-		if cmdLine == "" {
-			prompt(project)
+	for {
+		cmdline, err := readline.String(prompt(project))
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error reading command:", err)
+			break
+		}
+		if cmdline == "" {
 			continue
 		}
+		readline.AddHistory(cmdline)
 
-		var tokens []string
-		words := bufio.NewScanner(strings.NewReader(cmdLine))
-		words.Split(bufio.ScanWords)
-		for words.Scan() {
-			tokens = append(tokens, words.Text())
-		}
-
+		tokens := strings.Split(cmdline, " ")
 		cmd, valid := commandRegistry[tokens[0]]
 		if !valid {
 			fmt.Printf("\nUnknown command: \"%s\"\n", tokens[0])
@@ -47,13 +47,9 @@ func shell(info string, project *Project) {
 		if err := cmd(project, tokens[1:]); err != nil {
 			fmt.Printf("\n%s\n", err.Error())
 		}
-		prompt(project)
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error reading command:", err)
 	}
 }
 
-func prompt(project *Project) {
-	fmt.Printf("\n[%s:%s @ %s ]> ", project.Name, project.Version, workingDir)
+func prompt(project *Project) string {
+	return fmt.Sprintf("\n[%s:%s @ %s ]> ", project.Name, project.Version, workingDir)
 }

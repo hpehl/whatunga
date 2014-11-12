@@ -5,6 +5,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/bobappleyard/readline"
+	"github.com/mitchellh/go-homedir"
 	"io/ioutil"
 	"os"
 	"path"
@@ -69,6 +71,10 @@ func init() {
 	flag.Var(&targetFlag, "target", fmt.Sprintf("Specifies the target. Valid targets: %v.", supportedTargets))
 	flag.StringVar(&nameFlag, "name", "", "The name of the project. If you omit the name, the directories name is taken.")
 	flag.StringVar(&versionFlag, "version", "1.0", `The project version which is "1.0" by default.`)
+
+	loadHistory()
+	readline.Completer = topLevelCompleter
+	readline.CompletionAppendChar = ' '
 }
 
 func main() {
@@ -206,4 +212,18 @@ func openProject(directory string) (*Project, error) {
 	}
 
 	return &project, nil
+}
+
+func loadHistory() {
+	home, err := homedir.Dir()
+	if err == nil {
+		readline.LoadHistory(path.Join(home, ".whatunga_history"))
+	}
+}
+
+func saveHistory() {
+	home, err := homedir.Dir()
+	if err == nil {
+		readline.SaveHistory(path.Join(home, ".whatunga_history"))
+	}
 }
