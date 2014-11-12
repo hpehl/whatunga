@@ -5,9 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 )
 
-type Command func(*Project, []string) error
+// TODO Introduce a command struct similar to cli.go
+// and use that to implement help and tab completion
+type CommandFunc func(*Project, []string) error
+
+type Command struct {
+	// The name of the command
+	Name string
+	// A short description of the usage of this command
+	Usage string
+	// The function to call when checking for bash command completions
+	Completer func(query, ctx string) []string
+	// The function to call when this command is invoked
+	Action func(*Project, []string) error
+}
 
 func show(project *Project, args []string) error {
 	if len(args) == 0 {
@@ -26,10 +40,10 @@ func show(project *Project, args []string) error {
 		fmt.Printf("\n%v\n", project.Hosts)
 	case "source":
 		data, err := json.MarshalIndent(project, "", "  ")
-		if err != nil {
-			fmt.Printf("\nError generating source: %s\n", err.Error())
-		} else {
+		if err == nil {
 			fmt.Printf("\n%s\n", string(data))
+		} else {
+			return err
 		}
 	case "docker":
 		fmt.Printf("\nDocker not yet implemented\n")
@@ -106,7 +120,17 @@ func docker(_ *Project, args []string) error {
 	return nil
 }
 
-var commandRegistry = map[string]Command{
+func topLevelCompleter(query, ctx string) []string {
+	var commands []string
+	for key, _ := range commandRegistry {
+		if strings.HasPrefix(key, query) {
+			commands = append(commands, key)
+		}
+	}
+	return commands
+}
+
+var commandRegistry = map[string]CommandFunc{
 	"help":     help,
 	"show":     show,
 	"cd":       cd,
@@ -116,6 +140,7 @@ var commandRegistry = map[string]Command{
 	"validate": validate,
 	"docker":   docker,
 	"exit": func(_ *Project, _ []string) error {
+		saveHistory()
 		fmt.Println("\nHaere rā")
 		os.Exit(0)
 		return nil
