@@ -75,6 +75,17 @@ func init() {
 	loadHistory()
 	readline.Completer = topLevelCompleter
 	readline.CompletionAppendChar = ' '
+
+	// init commands
+	commandRegistry["help"] = help
+	commandRegistry["show"] = show
+	commandRegistry["cd"] = cd
+	commandRegistry["add"] = add
+	commandRegistry["set"] = set
+	commandRegistry["rm"] = rm
+	commandRegistry["validate"] = validate
+	commandRegistry["docker"] = docker
+	commandRegistry["exit"] = exit
 }
 
 func main() {
@@ -182,7 +193,6 @@ func newProject(directory string, name string, version string, target Target) (*
 	if err := ioutil.WriteFile(WhatungaJson, data, FilePerm); err != nil {
 		return nil, err
 	}
-
 	return project, nil
 }
 
@@ -192,7 +202,6 @@ func createTemplate(target Target, name string) error {
 	if err != nil {
 		return err
 	}
-
 	if err := ioutil.WriteFile(path.Join("templates", name), data, FilePerm); err != nil {
 		return err
 	}
@@ -210,7 +219,6 @@ func openProject(directory string) (*Project, error) {
 	if err := json.Unmarshal(data, &project); err != nil {
 		return nil, err
 	}
-
 	return &project, nil
 }
 

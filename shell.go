@@ -44,7 +44,7 @@ func shell(info string, project *Project) {
 			prompt(project)
 			continue
 		}
-		if err := cmd(project, tokens[1:]); err != nil {
+		if err := cmd.Action(project, tokens[1:]); err != nil {
 			fmt.Printf("\n%s\n", err.Error())
 		}
 	}
