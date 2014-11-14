@@ -247,7 +247,7 @@ Whatunga provides a list of commands to show current settings, change the projec
 
 - `help [command]` : Shows the list of available commands or context sensitive help
 
-- `show [section]` : Shows status information about the current project. To get specific information use one of the following sub commands:
+- `show section` : Shows status information. Use one of the following sub commands to get specific information:
     - `config`: Shows the current configuration
     - `server-groups`: Lists all server groups
     - `hosts`: Lists all hosts
@@ -264,7 +264,7 @@ Whatunga provides a list of commands to show current settings, change the projec
 
 - `validate`: Checks whether the project model is valid.
 
-- `docker`: Docker related commands
+- `docker cmd`: Docker related commands
 	- `create`: Creates docker images based on the current project model.
 	- `start`: Starts the docker images.
 
