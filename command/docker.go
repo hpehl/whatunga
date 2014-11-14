@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var dockerUsage = "docker create|start"
+var dockerUsage = "docker create|push|start"
 
 var docker = Command{
 	"docker",
@@ -17,7 +17,7 @@ var docker = Command{
 	// tab completer
 	func(query, _ string) []string {
 		var results []string
-		subCommands := [...]string{"create", "start"}
+		subCommands := [...]string{"create", "push", "start"}
 		for _, subCommand := range subCommands {
 			if strings.HasPrefix(subCommand, query) {
 				results = append(results, subCommand)
@@ -36,6 +36,8 @@ var docker = Command{
 		switch args[0] {
 		case "create":
 			fmt.Printf("\nDocker create...\n")
+		case "push":
+			fmt.Printf("\nDocker push...\n")
 		case "start":
 			fmt.Printf("\nDocker start...\n")
 		default:

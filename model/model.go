@@ -4,12 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hpehl/whatunga/template"
+	"io/ioutil"
+	"os"
+	"path"
 	"strings"
 )
 
 const (
-	WildFly string = "wildfly"
-	EAP     string = "eap"
+	WildFly       string      = "wildfly"
+	EAP           string      = "eap"
+	WhatungaJson  string      = "whatunga.json"
+	DirectoryPerm os.FileMode = 0755
+	FilePerm      os.FileMode = 0644
 )
 
 // ------------------------------------------------------ target
@@ -58,7 +65,7 @@ var ModelVersions = map[string]Target{
 	"1.6": {EAP, "6.3"},
 }
 
-// ------------------------------------------------------ Project Model
+// ------------------------------------------------------ project model
 
 type Project struct {
 	Name         string        `json:"name"`
@@ -67,6 +74,108 @@ type Project struct {
 	ServerGroups []ServerGroup `json:"server-groups"`
 	Hosts        []Host        `json:"hosts"`
 	Users        []User        `json:"users"`
+}
+
+func New(directory string, name string, version string, target Target) (*Project, error) {
+	if err := os.MkdirAll(directory, DirectoryPerm); err != nil {
+		return nil, err
+	}
+	if err := os.Chdir(directory); err != nil {
+		return nil, err
+	}
+	if err := os.Mkdir("templates", DirectoryPerm); err != nil {
+		return nil, err
+	}
+	if err := createTemplate(target, "domain.xml"); err != nil {
+		return nil, err
+	}
+	if err := createTemplate(target, "host-master.xml"); err != nil {
+		return nil, err
+	}
+	if err := createTemplate(target, "host-slave.xml"); err != nil {
+		return nil, err
+	}
+	if err := os.Mkdir("downloads", DirectoryPerm); err != nil {
+		return nil, err
+	}
+
+	project := &Project{
+		Name:    name,
+		Version: version,
+		Config: Config{
+			Templates: Templates{
+				Domain:     "templates/domain.xml",
+				HostMaster: "templates/host-master.xml",
+				HostSlave:  "templates/host-slave.xml",
+			},
+			ConsoleUser: User{
+				Name:     "admin",
+				Password: "passw0rd_",
+			},
+			DomainUser: User{
+				Name:     "dc",
+				Password: "passw0rd_",
+			},
+			DockerRemoteAPI: "unix:///var/run/docker.sock",
+		},
+		ServerGroups: []ServerGroup{},
+		Hosts:        []Host{},
+		Users:        []User{},
+	}
+	if err := project.Save(); err != nil {
+		return nil, err
+	}
+	return project, nil
+}
+
+func createTemplate(target Target, name string) error {
+	templatePath := path.Join("templates", target.Name, target.Version, name)
+	data, err := template.Asset(templatePath)
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(path.Join("templates", name), data, FilePerm); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Open(directory string) (*Project, error) {
+	fullyQualifiedWhatungaJson := path.Join(directory, WhatungaJson)
+	if _, err := os.Stat(fullyQualifiedWhatungaJson); os.IsNotExist(err) {
+		return nil, fmt.Errorf("Missing project file \"%s\"!", fullyQualifiedWhatungaJson)
+	}
+	if err := os.Chdir(directory); err != nil {
+		return nil, err
+	}
+
+	var project Project
+	if err := project.Load(); err != nil {
+		return nil, err
+	}
+	return &project, nil
+}
+
+func (project *Project) Save() error {
+	data, err := json.MarshalIndent(project, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(WhatungaJson, data, FilePerm); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (project *Project) Load() error {
+	data, err := ioutil.ReadFile(WhatungaJson)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, project); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (project *Project) Set(path string, value []string) {

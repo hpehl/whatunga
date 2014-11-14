@@ -1,13 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/hpehl/whatunga/model"
 	"github.com/hpehl/whatunga/shell"
-	"github.com/hpehl/whatunga/template"
-	"io/ioutil"
 	"os"
 	"path"
 )
@@ -54,19 +51,14 @@ func main() {
 	fileInfo, err := os.Stat(directory)
 
 	if os.IsNotExist(err) {
-		project, err := newProject(directory, nameFlag, versionFlag, targetFlag)
+		project, err := model.New(directory, nameFlag, versionFlag, targetFlag)
 		if err != nil {
 			wrongUsage(err.Error())
 		}
 		shell.Start(fmt.Sprintf(`Start with new project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
 
 	} else if fileInfo.Mode().IsDir() {
-		// Check for WhatungaJson
-		fullyQualifiedWhatungaJson := path.Join(directory, WhatungaJson)
-		if _, err := os.Stat(fullyQualifiedWhatungaJson); os.IsNotExist(err) {
-			wrongUsage(fmt.Sprintf("Missing project file \"%s\"!", fullyQualifiedWhatungaJson))
-		}
-		project, err := openProject(directory)
+		project, err := model.Open(directory)
 		if err != nil {
 			wrongUsage(err.Error())
 		}
@@ -82,87 +74,4 @@ func main() {
 func wrongUsage(why string) {
 	fmt.Fprintf(os.Stderr, "%s\n\n", why)
 	flag.Usage()
-}
-
-func newProject(directory string, name string, version string, target model.Target) (*model.Project, error) {
-	if err := os.MkdirAll(directory, DirectoryPerm); err != nil {
-		return nil, err
-	}
-	if err := os.Chdir(directory); err != nil {
-		return nil, err
-	}
-	if err := os.Mkdir("templates", DirectoryPerm); err != nil {
-		return nil, err
-	}
-	if err := createTemplate(target, "domain.xml"); err != nil {
-		return nil, err
-	}
-	if err := createTemplate(target, "host-master.xml"); err != nil {
-		return nil, err
-	}
-	if err := createTemplate(target, "host-slave.xml"); err != nil {
-		return nil, err
-	}
-	if err := os.Mkdir("downloads", DirectoryPerm); err != nil {
-		return nil, err
-	}
-
-	project := &model.Project{
-		Name:    name,
-		Version: version,
-		Config: model.Config{
-			Templates: model.Templates{
-				Domain:     "templates/domain.xml",
-				HostMaster: "templates/host-master.xml",
-				HostSlave:  "templates/host-slave.xml",
-			},
-			ConsoleUser: model.User{
-				Name:     "admin",
-				Password: "passw0rd_",
-			},
-			DomainUser: model.User{
-				Name:     "dc",
-				Password: "passw0rd_",
-			},
-			DockerRemoteAPI: "unix:///var/run/docker.sock",
-		},
-		ServerGroups: []model.ServerGroup{},
-		Hosts:        []model.Host{},
-		Users:        []model.User{},
-	}
-
-	data, err := json.MarshalIndent(project, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	if err := ioutil.WriteFile(WhatungaJson, data, FilePerm); err != nil {
-		return nil, err
-	}
-	return project, nil
-}
-
-func createTemplate(target model.Target, name string) error {
-	templatePath := path.Join("templates", target.Name, target.Version, name)
-	data, err := template.Asset(templatePath)
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(path.Join("templates", name), data, FilePerm); err != nil {
-		return err
-	}
-	return nil
-}
-
-func openProject(directory string) (*model.Project, error) {
-	os.Chdir(directory)
-
-	var project model.Project
-	data, err := ioutil.ReadFile(WhatungaJson)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(data, &project); err != nil {
-		return nil, err
-	}
-	return &project, nil
 }
