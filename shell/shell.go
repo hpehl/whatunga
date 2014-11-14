@@ -9,10 +9,15 @@ import (
 	"io"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 )
 
-var welcome = `
+const (
+	AppName         = "whatunga"
+	AppVersionMajor = 0
+	AppVersionMinor = 3
+	Logo            = `
  __      __.__            __
 /  \    /  \  |__ _____ _/  |_ __ __  ____    _________
 \   \/\/   /  |  \\__  \\   __\  |  \/    \  / ___\__  \
@@ -20,6 +25,12 @@ var welcome = `
   \__/\  / |___|  (____  /__| |____/|___|  /\___  (____  /
        \/       \/     \/                \//_____/     \/
 `
+)
+
+// revision part of the program version.
+// This will be set automatically at build time by using:
+// go build -ldflags "-X shell.AppVersionRev `date -u +%s`"
+var AppVersionRev string
 
 func init() {
 	home, err := homedir.Dir()
@@ -48,7 +59,7 @@ func init() {
 }
 
 func Start(info string, project *model.Project) {
-	fmt.Printf("%s\n\n%s\n\n%s\n", welcome, Version(), info)
+	fmt.Printf("%s\n%s\n%s\n", Logo, version(), info)
 
 	for {
 		cmdline, err := readline.String(prompt(project))
@@ -63,26 +74,29 @@ func Start(info string, project *model.Project) {
 			continue
 		}
 		readline.AddHistory(cmdline)
+		fmt.Println() // general new line after each cmd execution for better formatting
 
-		tokens := strings.Split(cmdline, " ")
-		var noneEmptyTokens []string
-		for _, token := range tokens {
-			if strings.TrimSpace(token) != "" {
-				noneEmptyTokens = append(noneEmptyTokens, token)
-			}
-		}
+		tokens := strings.Fields(cmdline)
 		cmd, valid := command.Registry[tokens[0]]
 		if !valid {
-			fmt.Printf("\nUnknown command: \"%s\"\n", tokens[0])
+			fmt.Printf("Unknown command: \"%s\"\n", tokens[0])
 			prompt(project)
 			continue
 		}
-		if err := cmd.Action(project, noneEmptyTokens[1:]); err != nil {
-			fmt.Printf("\n%s\n", err.Error())
+		if err := cmd.Action(project, tokens[1:]); err != nil {
+			fmt.Printf("%s\n", err.Error())
 		}
 	}
 }
 
+func version() string {
+	if len(AppVersionRev) == 0 {
+		AppVersionRev = "0"
+	}
+	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).",
+		AppName, AppVersionMajor, AppVersionMinor, AppVersionRev, runtime.Version())
+}
+
 func prompt(project *model.Project) string {
-	return fmt.Sprintf("\n[%s:%s @ %s ]> ", project.Name, project.Version, model.WorkingDir)
+	return fmt.Sprintf("\n[%s:%s @ %s]> ", project.Name, project.Version, model.WorkingDir)
 }

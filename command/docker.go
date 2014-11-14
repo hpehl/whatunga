@@ -10,6 +10,7 @@ var dockerUsage = "docker create|push|start"
 
 var docker = Command{
 	"docker",
+	"Docker related commands",
 	dockerUsage,
 	`Docker related commands
     - create: Creates docker images based on the current project model.

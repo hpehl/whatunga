@@ -11,6 +11,7 @@ import (
 
 var exit = Command{
 	"exit",
+	"Get out of here.",
 	"exit",
 	"Get out of here.",
 	// tab completer
@@ -23,7 +24,7 @@ var exit = Command{
 		if err == nil {
 			readline.SaveHistory(path.Join(home, ".whatunga_history"))
 		}
-		fmt.Println("\nHaere rā")
+		fmt.Println("Haere rā")
 		os.Exit(0)
 		return nil
 	},

@@ -9,8 +9,9 @@ var setUsage = "set path value,..."
 
 var set = Command{
 	"set",
-	setUsage,
 	"Modifies an object / attribute of the project model.",
+	setUsage,
+	"Modifies an object / attribute of the project model. TODO: Describe path for set.",
 	// tab completer
 	func(_, _ string) []string {
 		// TODO not yet implemented

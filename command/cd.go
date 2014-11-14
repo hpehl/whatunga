@@ -5,12 +5,23 @@ import (
 	"github.com/hpehl/whatunga/model"
 )
 
-var cdUsage = "cd path"
+var cdUsage = "cd <path>"
 
 var cd = Command{
 	"cd",
-	cdUsage,
 	"Changes the current context to the specified path.",
+	cdUsage,
+	`Changes the current context to the specified path. The path addresses an
+object or attribute in the project model. Could be a specific attribute like
+"host-master.server1.port-offset" or an object like "main-server-group".
+
+If the object is part of a collection you can also use an index (zero based)
+on objects type. To avoid naming conflicts you have to prefix the relevant
+path segment with ' in that case:
+
+    set 'hosts[2].servers[4].auto-start true
+
+sets the auto start flag of the fifth server of the third host`,
 	// tab completer
 	func(_, _ string) []string {
 		// TODO not yet implemented

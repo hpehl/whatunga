@@ -11,6 +11,7 @@ var showUsage = "show config|server-groups|hosts|source|docker"
 
 var show = Command{
 	"show",
+	"Shows status information",
 	showUsage,
 	`Shows status information:
     - config: Shows the current configuration.

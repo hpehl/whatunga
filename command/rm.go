@@ -5,12 +5,13 @@ import (
 	"github.com/hpehl/whatunga/model"
 )
 
-var rmUsage = "rm path"
+var rmUsage = "rm <path>"
 
 var rm = Command{
 	"rm",
-	rmUsage,
 	"Removes an object from the project model.",
+	rmUsage,
+	"Removes an object from the project model. TODO: Describe path for rm.",
 	// tab completer
 	func(_, _ string) []string {
 		// TODO not yet implemented

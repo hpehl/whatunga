@@ -9,6 +9,7 @@ var validateUsage = "validate"
 
 var validate = Command{
 	"validate",
+	"Checks whether the project model is valid.",
 	validateUsage,
 	"Checks whether the project model is valid.",
 	// tab completer
