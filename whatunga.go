@@ -2,90 +2,35 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"github.com/bobappleyard/readline"
-	"github.com/mitchellh/go-homedir"
+	"github.com/hpehl/whatunga/model"
+	"github.com/hpehl/whatunga/shell"
+	"github.com/hpehl/whatunga/template"
 	"io/ioutil"
 	"os"
 	"path"
-	"strings"
 )
 
 const (
 	WhatungaJson  string      = "whatunga.json"
-	WildFly       string      = "wildfly"
-	EAP           string      = "eap"
 	DirectoryPerm os.FileMode = 0755
 	FilePerm      os.FileMode = 0644
 )
 
-type Target struct {
-	Name    string
-	Version string
-}
-
-func (t Target) String() string {
-	return t.Name + ":" + t.Version
-}
-
-// Used by the flag package to parse a target given as command line flag
-func (t *Target) Set(value string) error {
-	parts := strings.Split(value, ":")
-	if len(parts) != 2 {
-		return errors.New("illegal format.\n")
-	}
-
-	var valid = false
-	*t = Target{parts[0], parts[1]}
-	for _, supported := range supportedTargets {
-		if *t == supported {
-			valid = true
-			break
-		}
-	}
-	if !valid {
-		return errors.New("unsupported target.\n")
-	}
-
-	return nil // no error
-}
-
-var supportedTargets = []Target{
-	{WildFly, "8.0"},
-	{WildFly, "8.1"},
-	{EAP, "6.3"},
-}
-
-var targetFlag Target = supportedTargets[1]
+var targetFlag model.Target = model.SupportedTargets[1]
 var nameFlag string
 var versionFlag string
 
 func init() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [--target=target] [--name=name] [--version=version] <directory>\n\n", AppName)
+		fmt.Fprintf(os.Stderr, "Usage: %s [--target=target] [--name=name] [--version=version] <directory>\n\n", shell.AppName)
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	flag.Var(&targetFlag, "target", fmt.Sprintf("Specifies the target. Valid targets: %v.", supportedTargets))
+	flag.Var(&targetFlag, "target", fmt.Sprintf("Specifies the target. Valid targets: %v.", model.SupportedTargets))
 	flag.StringVar(&nameFlag, "name", "", "The name of the project. If you omit the name, the directories name is taken.")
 	flag.StringVar(&versionFlag, "version", "1.0", `The project version which is "1.0" by default.`)
-
-	loadHistory()
-	readline.Completer = topLevelCompleter
-	readline.CompletionAppendChar = ' '
-
-	// init commands
-	commandRegistry["help"] = help
-	commandRegistry["show"] = show
-	commandRegistry["cd"] = cd
-	commandRegistry["add"] = add
-	commandRegistry["set"] = set
-	commandRegistry["rm"] = rm
-	commandRegistry["validate"] = validate
-	commandRegistry["docker"] = docker
-	commandRegistry["exit"] = exit
 }
 
 func main() {
@@ -113,7 +58,7 @@ func main() {
 		if err != nil {
 			wrongUsage(err.Error())
 		}
-		shell(fmt.Sprintf(`Start with new project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
+		shell.Start(fmt.Sprintf(`Start with new project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
 
 	} else if fileInfo.Mode().IsDir() {
 		// Check for WhatungaJson
@@ -125,7 +70,7 @@ func main() {
 		if err != nil {
 			wrongUsage(err.Error())
 		}
-		shell(fmt.Sprintf(`Open existing project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
+		shell.Start(fmt.Sprintf(`Open existing project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
 
 	} else {
 		wrongUsage(fmt.Sprintf("\"%s\" is not a directory!", directory))
@@ -139,7 +84,7 @@ func wrongUsage(why string) {
 	flag.Usage()
 }
 
-func newProject(directory string, name string, version string, target Target) (*Project, error) {
+func newProject(directory string, name string, version string, target model.Target) (*model.Project, error) {
 	if err := os.MkdirAll(directory, DirectoryPerm); err != nil {
 		return nil, err
 	}
@@ -162,28 +107,28 @@ func newProject(directory string, name string, version string, target Target) (*
 		return nil, err
 	}
 
-	project := &Project{
+	project := &model.Project{
 		Name:    name,
 		Version: version,
-		Config: Config{
-			Templates: Templates{
+		Config: model.Config{
+			Templates: model.Templates{
 				Domain:     "templates/domain.xml",
 				HostMaster: "templates/host-master.xml",
 				HostSlave:  "templates/host-slave.xml",
 			},
-			ConsoleUser: User{
+			ConsoleUser: model.User{
 				Name:     "admin",
 				Password: "passw0rd_",
 			},
-			DomainUser: User{
+			DomainUser: model.User{
 				Name:     "dc",
 				Password: "passw0rd_",
 			},
 			DockerRemoteAPI: "unix:///var/run/docker.sock",
 		},
-		ServerGroups: []ServerGroup{},
-		Hosts:        []Host{},
-		Users:        []User{},
+		ServerGroups: []model.ServerGroup{},
+		Hosts:        []model.Host{},
+		Users:        []model.User{},
 	}
 
 	data, err := json.MarshalIndent(project, "", "  ")
@@ -196,9 +141,9 @@ func newProject(directory string, name string, version string, target Target) (*
 	return project, nil
 }
 
-func createTemplate(target Target, name string) error {
-	template := path.Join("templates", target.Name, target.Version, name)
-	data, err := Asset(template)
+func createTemplate(target model.Target, name string) error {
+	templatePath := path.Join("templates", target.Name, target.Version, name)
+	data, err := template.Asset(templatePath)
 	if err != nil {
 		return err
 	}
@@ -208,10 +153,10 @@ func createTemplate(target Target, name string) error {
 	return nil
 }
 
-func openProject(directory string) (*Project, error) {
+func openProject(directory string) (*model.Project, error) {
 	os.Chdir(directory)
 
-	var project Project
+	var project model.Project
 	data, err := ioutil.ReadFile(WhatungaJson)
 	if err != nil {
 		return nil, err
@@ -220,18 +165,4 @@ func openProject(directory string) (*Project, error) {
 		return nil, err
 	}
 	return &project, nil
-}
-
-func loadHistory() {
-	home, err := homedir.Dir()
-	if err == nil {
-		readline.LoadHistory(path.Join(home, ".whatunga_history"))
-	}
-}
-
-func saveHistory() {
-	home, err := homedir.Dir()
-	if err == nil {
-		readline.SaveHistory(path.Join(home, ".whatunga_history"))
-	}
 }

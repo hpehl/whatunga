@@ -1,6 +1,9 @@
-package main
+package command
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/hpehl/whatunga/model"
+)
 
 var setUsage = "set path value,..."
 
@@ -14,7 +17,7 @@ var set = Command{
 		return nil
 	},
 	// action
-	func(_ *Project, args []string) error {
+	func(_ *model.Project, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("Missing arguments. Usage: %s", setUsage)
 		}

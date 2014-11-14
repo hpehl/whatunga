@@ -1,6 +1,9 @@
-package main
+package command
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/hpehl/whatunga/model"
+)
 
 var cdUsage = "cd path"
 
@@ -14,7 +17,7 @@ var cd = Command{
 		return nil
 	},
 	// action
-	func(_ *Project, args []string) error {
+	func(_ *model.Project, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("Missing argument. Usage: %s", cdUsage)
 		}
@@ -23,7 +26,7 @@ var cd = Command{
 		}
 
 		// TODO validate path
-		workingDir = args[0]
+		model.WorkingDir = args[0]
 		return nil
 	},
 }

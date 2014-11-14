@@ -1,8 +1,9 @@
-package main
+package command
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/hpehl/whatunga/model"
 	"strings"
 )
 
@@ -29,7 +30,7 @@ var show = Command{
 		return results
 	},
 	// action
-	func(project *Project, args []string) error {
+	func(project *model.Project, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("Missing argument. Usage: %s", showUsage)
 		}

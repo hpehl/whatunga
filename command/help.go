@@ -1,8 +1,9 @@
-package main
+package command
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/hpehl/whatunga/model"
 	"strings"
 )
 
@@ -15,7 +16,7 @@ var help = Command{
 	// tab completer
 	func(query, _ string) []string {
 		var results []string
-		for key, _ := range commandRegistry {
+		for key, _ := range Registry {
 			if key == "help" {
 				continue
 			} else {
@@ -27,16 +28,16 @@ var help = Command{
 		return results
 	},
 	// action
-	func(_ *Project, args []string) error {
+	func(_ *model.Project, args []string) error {
 		if len(args) == 0 {
 			// general help
 			var buffer bytes.Buffer
-			for _, cmd := range commandRegistry {
+			for _, cmd := range Registry {
 				buffer.WriteString(fmt.Sprintf("%s\n\t%s\n\n", cmd.Usage, cmd.Help))
 			}
 			fmt.Println(buffer.String())
 		} else if len(args) == 1 {
-			cmd, valid := commandRegistry[args[0]]
+			cmd, valid := Registry[args[0]]
 			if !valid {
 				fmt.Printf("Unknown command: \"%s\"\n", args[0])
 			} else {

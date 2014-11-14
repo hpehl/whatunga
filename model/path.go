@@ -1,4 +1,4 @@
-package main
+package model
 
 import (
 	"fmt"
@@ -6,6 +6,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 )
+
+//var currentState state = COMMANDS
+var WorkingDir string = "/"
 
 // Pos represents a byte position in the original input text from which
 // this template was parsed.

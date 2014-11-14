@@ -1,7 +1,8 @@
-package main
+package command
 
 import (
 	"fmt"
+	"github.com/hpehl/whatunga/model"
 	"strings"
 )
 
@@ -25,7 +26,7 @@ var docker = Command{
 		return results
 	},
 	// action
-	func(_ *Project, args []string) error {
+	func(_ *model.Project, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("Missing argument. Usage: %s", dockerUsage)
 		}

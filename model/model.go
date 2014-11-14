@@ -1,9 +1,64 @@
-package main
+package model
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 )
+
+const (
+	WildFly string = "wildfly"
+	EAP     string = "eap"
+)
+
+// ------------------------------------------------------ target
+
+type Target struct {
+	Name    string
+	Version string
+}
+
+func (t Target) String() string {
+	return t.Name + ":" + t.Version
+}
+
+// Used by the flag package to parse a target given as command line flag
+func (t *Target) Set(value string) error {
+	parts := strings.Split(value, ":")
+	if len(parts) != 2 {
+		return errors.New("illegal format.\n")
+	}
+
+	var valid = false
+	*t = Target{parts[0], parts[1]}
+	for _, supported := range SupportedTargets {
+		if *t == supported {
+			valid = true
+			break
+		}
+	}
+	if !valid {
+		return errors.New("unsupported target.\n")
+	}
+
+	return nil // no error
+}
+
+var SupportedTargets = []Target{
+	{WildFly, "8.0"},
+	{WildFly, "8.1"},
+	{EAP, "6.3"},
+}
+
+// the xmlns version of the config files
+var ModelVersions = map[string]Target{
+	"2.0": {WildFly, "8.0"},
+	"2.1": {WildFly, "8.1"},
+	"1.6": {EAP, "6.3"},
+}
+
+// ------------------------------------------------------ Project Model
 
 type Project struct {
 	Name         string        `json:"name"`
@@ -18,7 +73,7 @@ func (project *Project) Set(path string, value []string) {
 	if path == "" {
 		return
 	}
-
+	// TODO Use reflection to set values
 }
 
 type Config struct {
