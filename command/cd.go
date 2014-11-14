@@ -37,7 +37,7 @@ sets the auto start flag of the fifth server of the third host`,
 		}
 
 		// TODO validate path
-		model.WorkingDir = args[0]
+		model.CurrentContext = args[0]
 		return nil
 	},
 }

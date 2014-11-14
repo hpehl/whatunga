@@ -7,8 +7,23 @@ import (
 	"unicode/utf8"
 )
 
-//var currentState state = COMMANDS
-var WorkingDir string = "/"
+const (
+	Root = "/"
+)
+
+var CurrentContext = Root
+
+type Path string
+
+func (p Path) Completer(project *Project) []string {
+	return nil
+}
+
+func (p Path) Resolve(project *Project) ([]Path, error) {
+	return nil, nil
+}
+
+// ------------------------------------------------------ from here copied from text/template/parse/lex.go
 
 // Pos represents a byte position in the original input text from which
 // this template was parsed.
