@@ -48,7 +48,7 @@ func init() {
 }
 
 func Start(info string, project *model.Project) {
-	fmt.Printf("%s\n\n%s\n\n%s\n", info, welcome, Version())
+	fmt.Printf("%s\n\n%s\n\n%s\n", welcome, Version(), info)
 
 	for {
 		cmdline, err := readline.String(prompt(project))

@@ -76,7 +76,7 @@ type Project struct {
 	Users        []User        `json:"users"`
 }
 
-func New(directory string, name string, version string, target Target) (*Project, error) {
+func NewProject(directory string, name string, version string, target Target) (*Project, error) {
 	if err := os.MkdirAll(directory, DirectoryPerm); err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func createTemplate(target Target, name string) error {
 	return nil
 }
 
-func Open(directory string) (*Project, error) {
+func OpenProject(directory string) (*Project, error) {
 	fullyQualifiedWhatungaJson := path.Join(directory, WhatungaJson)
 	if _, err := os.Stat(fullyQualifiedWhatungaJson); os.IsNotExist(err) {
 		return nil, fmt.Errorf("Missing project file \"%s\"!", fullyQualifiedWhatungaJson)

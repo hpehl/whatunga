@@ -9,12 +9,6 @@ import (
 	"path"
 )
 
-const (
-	WhatungaJson  string      = "whatunga.json"
-	DirectoryPerm os.FileMode = 0755
-	FilePerm      os.FileMode = 0644
-)
-
 var targetFlag model.Target = model.SupportedTargets[1]
 var nameFlag string
 var versionFlag string
@@ -51,14 +45,14 @@ func main() {
 	fileInfo, err := os.Stat(directory)
 
 	if os.IsNotExist(err) {
-		project, err := model.New(directory, nameFlag, versionFlag, targetFlag)
+		project, err := model.NewProject(directory, nameFlag, versionFlag, targetFlag)
 		if err != nil {
 			wrongUsage(err.Error())
 		}
 		shell.Start(fmt.Sprintf(`Start with new project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
 
 	} else if fileInfo.Mode().IsDir() {
-		project, err := model.Open(directory)
+		project, err := model.OpenProject(directory)
 		if err != nil {
 			wrongUsage(err.Error())
 		}
