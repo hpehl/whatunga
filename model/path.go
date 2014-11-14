@@ -11,17 +11,24 @@ const (
 	Root = "/"
 )
 
-var CurrentContext = Root
-
 type Path string
 
+func (p Path) Validate(project *Project) error {
+	return nil
+}
+
 func (p Path) Completer(project *Project) []string {
+	if p != Root {
+		p = CurrentContext + "." + p
+	}
 	return nil
 }
 
 func (p Path) Resolve(project *Project) ([]Path, error) {
 	return nil, nil
 }
+
+var CurrentContext Path = Root
 
 // ------------------------------------------------------ from here copied from text/template/parse/lex.go
 

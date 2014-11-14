@@ -13,7 +13,7 @@ var set = Command{
 	setUsage,
 	"Modifies an object / attribute of the project model. TODO: Describe path for set.",
 	// tab completer
-	func(_, _ string) []string {
+	func(_ *model.Project, _, _ string) []string {
 		// TODO not yet implemented
 		return nil
 	},

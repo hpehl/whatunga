@@ -38,6 +38,9 @@ func init() {
 		readline.LoadHistory(path.Join(home, ".whatunga_history"))
 	}
 	readline.CompletionAppendChar = ' '
+}
+
+func lateInit(project *model.Project) {
 	readline.Completer = func(query, ctx string) []string {
 		var results []string
 		tokens := strings.Split(ctx, " ")
@@ -45,7 +48,7 @@ func init() {
 			cmd, valid := command.Registry[tokens[0]]
 			if valid {
 				// delegate to command specific completer func
-				return cmd.Completer(query, ctx)
+				return cmd.Completer(project, query, ctx)
 			} else {
 				for key, _ := range command.Registry {
 					if strings.HasPrefix(key, query) {
@@ -59,6 +62,7 @@ func init() {
 }
 
 func Start(info string, project *model.Project) {
+	lateInit(project)
 	fmt.Printf("%s\n%s\n%s\n", Logo, version(), info)
 
 	for {
@@ -98,5 +102,5 @@ func version() string {
 }
 
 func prompt(project *model.Project) string {
-	return fmt.Sprintf("\n[%s:%s @ %s]> ", project.Name, project.Version, model.WorkingDir)
+	return fmt.Sprintf("\n[%s:%s @ %s]> ", project.Name, project.Version, model.CurrentContext)
 }

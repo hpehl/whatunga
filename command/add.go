@@ -30,7 +30,7 @@ These patterns can contain specific variables:
 It's up to the user to choose a pattern which generates unique names.
 Non-unique names will lead to an error.`,
 	// tab completer
-	func(_, _ string) []string {
+	func(_ *model.Project, _, _ string) []string {
 		// TODO not yet implemented
 		return nil
 	},

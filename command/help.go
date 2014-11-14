@@ -15,7 +15,7 @@ var help = Command{
 	helpUsage,
 	"Displays this help message or prints detailed help on requested commands.",
 	// tab completer
-	func(query, _ string) []string {
+	func(_ *model.Project, query, _ string) []string {
 		var results []string
 		for key, _ := range Registry {
 			if strings.HasPrefix(key, query) {

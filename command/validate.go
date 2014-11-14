@@ -13,7 +13,7 @@ var validate = Command{
 	validateUsage,
 	"Checks whether the project model is valid.",
 	// tab completer
-	func(_, _ string) []string {
+	func(_ *model.Project, _, _ string) []string {
 		return nil
 	},
 	// action

@@ -15,7 +15,7 @@ var exit = Command{
 	"exit",
 	"Get out of here.",
 	// tab completer
-	func(_, _ string) []string {
+	func(_ *model.Project, _, _ string) []string {
 		return nil
 	},
 	// action

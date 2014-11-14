@@ -23,12 +23,12 @@ path segment with ' in that case:
 
 sets the auto start flag of the fifth server of the third host`,
 	// tab completer
-	func(_, _ string) []string {
+	func(_ *model.Project, _, _ string) []string {
 		// TODO not yet implemented
 		return nil
 	},
 	// action
-	func(_ *model.Project, args []string) error {
+	func(project *model.Project, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("Missing argument. Usage: %s", cdUsage)
 		}
@@ -36,8 +36,11 @@ sets the auto start flag of the fifth server of the third host`,
 			return fmt.Errorf("Too many arguments. Usage: %s", cdUsage)
 		}
 
-		// TODO validate path
-		model.CurrentContext = args[0]
+		path := model.Path(args[0])
+		if err := path.Validate(project); err != nil {
+			return err
+		}
+		model.CurrentContext = path
 		return nil
 	},
 }

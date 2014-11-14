@@ -13,7 +13,7 @@ var rm = Command{
 	rmUsage,
 	"Removes an object from the project model. TODO: Describe path for rm.",
 	// tab completer
-	func(_, _ string) []string {
+	func(_ *model.Project, _, _ string) []string {
 		// TODO not yet implemented
 		return nil
 	},

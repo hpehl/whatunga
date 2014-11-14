@@ -16,7 +16,7 @@ var docker = Command{
     - create: Creates docker images based on the current project model.
     - start: Starts the docker images.`,
 	// tab completer
-	func(query, _ string) []string {
+	func(_ *model.Project, query, _ string) []string {
 		var results []string
 		subCommands := [...]string{"create", "push", "start"}
 		for _, subCommand := range subCommands {
