@@ -10,7 +10,7 @@ Whatunga looks for a file named `whatunga.json` in the specified directory. If t
 
 The options are only valid when creating a new project; they're ignored when an existing project is loaded. 
 
-- `target`: Specifies the target using `<product>:<version>` with the following valid combinations:
+- `target` Specifies the target using `<product>:<version>` with the following valid combinations:
 
 	- wildfly:8.0
 	- wildfly:8.1
@@ -18,9 +18,9 @@ The options are only valid when creating a new project; they're ignored when an 
 	
 	If you omit the target, `wildfly:8.1` will be used.
 	
-- `name`: The name of the project. If you omit the name, the directories name is taken. 
+- `name` The name of the project. If you omit the name, the directories name is taken.
 
-- `version`: The version which is "1.0" by default.
+- `version` The version which is "1.0" by default.
 
 # Model
 
@@ -245,32 +245,30 @@ In this section you can add additional users which are added to the domain contr
 
 Whatunga provides a list of commands to show current settings, change the project model and interact with Docker.
 
-- `help [command]` : Shows the list of available commands or context sensitive help
+- `help [command]` Shows the list of available commands or context sensitive help
 
-- `show section` : Shows status information. Use one of the following sub commands to get specific information:
-    - `config`: Shows the current configuration
-    - `server-groups`: Lists all server groups
-    - `hosts`: Lists all hosts
-    - `source`: Prints the complete project model
-    - `docker`: Provides information about the Docker status and version
+- `show section` Shows status information. Use one of the following sub commands to get specific information:
+    - `config` Shows the current configuration
+    - `server-groups` Lists all server groups
+    - `hosts` Lists all hosts
+    - `source` Prints the complete project model
+    - `docker` Provides information about the Docker status and version
     
-- `cd path`: Changes the current context to the specified path.
+- `cd path` Changes the current context to the specified path.
 
-- `add server-group|host|server|deployment|user value,... [--times=n]`: Adds one or several objects to the project model.
+- `add server-group|host|server|deployment|user value,... [--times=n]` Adds one or several objects to the project model.
 
-- `set path value,...`: Modifies an object / attribute of the project model.
+- `set path value,...` Modifies an object / attribute of the project model.
 
-- `rm path`: Removes an object from the project model.
+- `rm path` Removes an object from the project model.
 
-- `validate`: Checks whether the project model is valid.
+- `validate` Checks whether the project model is valid.
 
-- `docker cmd`: Docker related commands
-	- `create`: Creates docker images based on the current project model.
-	- `start`: Starts the docker images.
+- `docker cmd` Docker related commands
+	- `create` Creates docker images based on the current project model.
+	- `start` Starts the docker images.
 
-- `exit`: Get out of here.
-
-- `!cmd`: Executes cmd as shell command.
+- `exit` Get out of here.
 
 ## Path
 
@@ -301,11 +299,11 @@ If the path addresses multiple objects you can provide multiple values:
 
 When adding multiple server groups, hosts and servers, whatunga uses a naming pattern to create unique names. These patterns can contain specific variables: 
 
-- `%w`: Resolves to the project name
-- `%v`: Resolves to the project version 
-- `%h`: Inserts the current host name (applicable when adding servers to a host)
-- `%g`: Inserts the current server group name (applicable when adding servers to a server group)
-- `[n]%c`: A counter which starts at zero and which is incremented for each added object.
+- `%w` Resolves to the project name
+- `%v` Resolves to the project version
+- `%h` Inserts the current host name (applicable when adding servers to a host)
+- `%g` Inserts the current server group name (applicable when adding servers to a server group)
+- `[n]%c` A counter which starts at zero and which is incremented for each added object.
 
 It's up to the user to choose a pattern which generates unique names. Non-unique names will lead to an error.  
 
@@ -313,7 +311,7 @@ It's up to the user to choose a pattern which generates unique names. Non-unique
 
 The following sample shows a list of commands to setup a domain with three server groups, four hosts, eight servers and one deployment:
 
-```sh
+```
 # Add three server groups and set the specified profiles. 
 # As no socket binding is specified, the first socket binding defined 
 # in the domain template is used. 
