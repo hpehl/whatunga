@@ -64,8 +64,7 @@ The following example shows a typical `whatunga.json` file:
           "runtime-name": "ticketmonster",
           "path": "deployments/ticketmonster.ear"
         }
-      ],
-      "jvm": null
+      ]
     },
     {
       "name": "full-group",
@@ -78,15 +77,13 @@ The following example shows a typical `whatunga.json` file:
           "max": "2GB"
         },
         "perm-gen": "256MB",
-        "stack": "128MB",
-        "options": null
+        "stack": "128MB"
       }
     },
     {
       "name": "ha-group",
       "profile": "ha-profile",
-      "socket-binding": "ha-sockets",
-      "jvm": null
+      "socket-binding": "ha-sockets"
     }
   ],
   "hosts": [
@@ -96,89 +93,49 @@ The following example shows a typical `whatunga.json` file:
       "servers": [
         {
           "name": "server-one",
-          "server-group": "default-group",
-          "port-offset": 0,
-          "auto-start": false,
-          "jvm": null
+          "server-group": "default-group"
         },
         {
           "name": "server-two",
           "server-group": "default-group",
-          "port-offset": 50,
-          "auto-start": false,
-          "jvm": null
+          "port-offset": 50
         },
         {
           "name": "server-three",
           "server-group": "full-group",
           "port-offset": 100,
-          "auto-start": true,
-          "jvm": null
+          "auto-start": true
         }
-      ],
-      "jvm": null
+      ]
     },
     {
       "name": "slave1",
-      "domain-controller": true,
       "servers": [
         {
           "name": "server-four",
-          "server-group": "full-group",
-          "port-offset": 0,
-          "auto-start": false,
-          "jvm": {
-            "name": "default-jvm",
-            "heap": {
-              "initial": "1GB",
-              "max": "2GB"
-            },
-            "perm-gen": "256MB",
-            "stack": "128MB",
-            "options": null
-          }
+          "server-group": "full-group"
         },
         {
           "name": "server-five",
           "server-group": "full-group",
-          "port-offset": 50,
-          "auto-start": false,
-          "jvm": null
+          "port-offset": 50
         }
-      ],
-      "jvm": null
+      ]
     },
     {
       "name": "slave2",
-      "domain-controller": true,
       "servers": [
         {
           "name": "server-six",
-          "server-group": "ha-group",
-          "port-offset": 0,
-          "auto-start": false,
-          "jvm": null
+          "server-group": "ha-group"
         },
         {
           "name": "server-seven",
           "server-group": "ha-group",
           "port-offset": 50,
-          "auto-start": true,
-          "jvm": {
-            "name": "default-jvm",
-            "heap": {
-              "initial": "1GB",
-              "max": "2GB"
-            },
-            "perm-gen": "128MB",
-            "stack": "",
-            "options": [
-              "-XFoo=Bar"
-            ]
-          }
+          "auto-start": true
         }
-      ],
-      "jvm": null
+      ]
     }
   ],
   "users": [
