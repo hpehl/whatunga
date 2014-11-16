@@ -13,9 +13,8 @@ var rm = Command{
 	rmUsage,
 	"Removes an object from the project model. TODO: Describe path for rm.",
 	// tab completer
-	func(_ *model.Project, _, _ string) []string {
-		// TODO not yet implemented
-		return nil
+	func(project *model.Project, query, _ string) []string {
+		return model.CurrentContext.Completer(project, query)
 	},
 	// action
 	func(_ *model.Project, args []string) error {

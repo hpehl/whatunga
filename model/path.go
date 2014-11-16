@@ -2,33 +2,59 @@ package model
 
 import (
 	"fmt"
+	"github.com/bobappleyard/readline"
+	"github.com/oleiade/reflections"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
 const (
-	Root = "/"
+	Root          = "/"
+	Attribute int = iota
+	Object        = iota
 )
+
+type Kind int
 
 type Path string
 
-func (p Path) Validate(project *Project) error {
-	return nil
+var CurrentContext Path = Root
+
+// Verifies that the given path is an existing object / attribute in the project model.
+// The path must not contain wildcards.
+func (p Path) Exists(project *Project, kind Kind) bool {
+	return true
 }
 
-func (p Path) Completer(project *Project) []string {
-	if p != Root {
-		p = CurrentContext + "." + p
+// The function to call when checking for tab completion on the given path.
+// The path can contain wildcards.
+func (p Path) Completer(project *Project, query string) []string {
+	backup := readline.CompletionAppendChar
+	readline.CompletionAppendChar = 0
+
+	var results []string
+	if p == Root {
+		tags, err := reflections.Tags(project, "json")
+		if err != nil {
+			return nil
+		}
+		for _, tagName := range tags {
+			if strings.HasPrefix(tagName, query) {
+				results = append(results, tagName)
+			}
+		}
 	}
-	return nil
+
+	readline.CompletionAppendChar = backup
+	return results
 }
 
+// Resolves a path like "staging-group.*.auto-start" or "'server-groups[2..4].profile"
+// to a slice of full qualified paths. If the path cannot be resolved, an error is returned.
 func (p Path) Resolve(project *Project) ([]Path, error) {
 	return nil, nil
 }
-
-var CurrentContext Path = Root
 
 // ------------------------------------------------------ from here copied from text/template/parse/lex.go
 

@@ -11,21 +11,19 @@ var cd = Command{
 	"cd",
 	"Changes the current context to the specified path.",
 	cdUsage,
-	`Changes the current context to the specified path. The path addresses an
-object or attribute in the project model. Could be a specific attribute like
-"host-master.server1.port-offset" or an object like "main-server-group".
+	`Changes the current context to the specified path. The path addresses
+the name of an object in the project model like "main-server-group".
 
 If the object is part of a collection you can also use an index (zero based)
-on objects type. To avoid naming conflicts you have to prefix the relevant
+on the objects type. To avoid naming conflicts you have to prefix the relevant
 path segment with ' in that case:
 
-    set 'hosts[2].servers[4].auto-start true
+    cd 'hosts[2].'servers[4]
 
-sets the auto start flag of the fifth server of the third host`,
+changes the current context to the fifth server of the third host.`,
 	// tab completer
-	func(_ *model.Project, _, _ string) []string {
-		// TODO not yet implemented
-		return nil
+	func(project *model.Project, query, _ string) []string {
+		return model.CurrentContext.Completer(project, query)
 	},
 	// action
 	func(project *model.Project, args []string) error {
@@ -37,8 +35,8 @@ sets the auto start flag of the fifth server of the third host`,
 		}
 
 		path := model.Path(args[0])
-		if err := path.Validate(project); err != nil {
-			return err
+		if !path.Exists(project, model.Object) {
+			return fmt.Errorf("No such object: \"%s\"\n", path)
 		}
 		model.CurrentContext = path
 		return nil

@@ -13,9 +13,8 @@ var set = Command{
 	setUsage,
 	"Modifies an object / attribute of the project model. TODO: Describe path for set.",
 	// tab completer
-	func(_ *model.Project, _, _ string) []string {
-		// TODO not yet implemented
-		return nil
+	func(project *model.Project, query, _ string) []string {
+		return model.CurrentContext.Completer(project, query)
 	},
 	// action
 	func(_ *model.Project, args []string) error {
