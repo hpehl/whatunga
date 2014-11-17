@@ -23,7 +23,8 @@ path segment with ' in that case:
 changes the current context to the fifth server of the third host.`,
 	// tab completer
 	func(project *model.Project, query, _ string) []string {
-		return model.CurrentContext.Completer(project, query)
+
+		return model.CurrentPath.Completer(project, query)
 	},
 	// action
 	func(project *model.Project, args []string) error {
@@ -33,12 +34,6 @@ changes the current context to the fifth server of the third host.`,
 		if len(args) > 1 {
 			return fmt.Errorf("Too many arguments. Usage: %s", cdUsage)
 		}
-
-		path := model.Path(args[0])
-		if !path.Exists(project, model.Object) {
-			return fmt.Errorf("No such object: \"%s\"\n", path)
-		}
-		model.CurrentContext = path
-		return nil
+		return model.CurrentPath.Cd(project, args[0])
 	},
 }

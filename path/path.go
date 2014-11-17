@@ -1,46 +1,156 @@
-package model
+package path
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/bobappleyard/readline"
+	"github.com/hpehl/whatunga/model"
 	"github.com/oleiade/reflections"
+	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
 const (
-	Root          = "/"
-	Attribute int = iota
-	Object        = iota
+	Attribute    int = iota
+	Object           = iota
+	Numeric          = iota
+	AlphaNumeric     = iota
+	Undefined        = -1
 )
 
 type Kind int
 
-type Path string
+type Path []Segment
 
-var CurrentContext Path = Root
+type Segment struct {
+	Name  string
+	Index Index
+	Range Range
+}
 
-// Verifies that the given path is an existing object / attribute in the project model.
-// The path must not contain wildcards.
-func (p Path) Exists(project *Project, kind Kind) bool {
-	return true
+type Index struct {
+	Kind  int
+	Value interface{}
+}
+
+type Range struct {
+	From, To int
+}
+
+var EmptyIndex Index = Index{Undefined, nil}
+var EmptyRange Range = Range{Undefined, Undefined}
+
+// regular expression for segments with an index / range
+var plainSegment = regexp.MustCompile(`^([\w-]+)$`)
+var indexSegment = regexp.MustCompile(`^([\w-]+)\[((\d+)|([A-Za-z_-]+))\]$`)
+var rangeSegment = regexp.MustCompile(`^([\w-]+)\[((\d*)(:)(\d*))\]$`)
+
+var CurrentPath string = ""
+var currentContext interface{} = nil
+
+// Turns a string into a path
+func Parse(p string) (Path, error) {
+	var path Path
+	segments := strings.Split(p, ".")
+
+	for _, s := range segments {
+		segment := Segment{"", EmptyIndex, EmptyRange}
+
+		if s != "" {
+			// check most specific re first!
+			if rangeSegment.MatchString(s) {
+				groups := rangeSegment.FindStringSubmatch(s)
+				segment.Name = groups[1]
+				if groups[3] != "" {
+					from, err := strconv.Atoi(groups[3])
+					if err != nil {
+						return nil, fmt.Errorf(`Invalid path "%s": "%s:%s" is not a valid range`, p, groups[3], groups[5])
+					}
+					segment.Range.From = from
+				}
+				if groups[5] != "" {
+					to, err := strconv.Atoi(groups[5])
+					if err != nil {
+						return nil, fmt.Errorf(`Invalid path "%s": "%s:%s" is not a valid range`, p, groups[3], groups[5])
+					}
+					segment.Range.To = to
+				}
+
+			} else if indexSegment.MatchString(s) {
+				groups := indexSegment.FindStringSubmatch(s)
+				segment.Name = groups[1]
+				if groups[3] != "" {
+					// numeric index
+					index, err := strconv.Atoi(groups[3])
+					if err != nil {
+						return nil, fmt.Errorf(`Invalid path "%s": "%s" is not a valid numeric index`, p, groups[3])
+					}
+					segment.Index.Kind = Numeric
+					segment.Index.Value = index
+				} else if groups[4] != "" {
+					// alpha-numeric range
+					segment.Index.Kind = AlphaNumeric
+					segment.Index.Value = groups[4]
+				}
+
+			} else if plainSegment.MatchString(s) {
+				groups := plainSegment.FindStringSubmatch(s)
+				segment.Name = groups[1]
+
+			} else {
+				return nil, fmt.Errorf(`Invalid segment "%s" in path "%s"`, s, p)
+			}
+		}
+		path = append(path, segment)
+	}
+	return path, nil
+}
+
+func (path Path) String() string {
+	var buffer bytes.Buffer
+	for idx, segment := range path {
+		buffer.WriteString(segment.Name)
+		if segment.Index != EmptyIndex {
+			buffer.WriteString(fmt.Sprintf("[%v]", segment.Index.Value))
+		} else if segment.Range != EmptyRange {
+			buffer.WriteString("[")
+			if segment.Range.From != Undefined {
+				buffer.WriteString(fmt.Sprint("%d", segment.Range.From))
+			}
+			buffer.WriteString(":")
+			if segment.Range.To != Undefined {
+				buffer.WriteString(fmt.Sprint("%d", segment.Range.To))
+			}
+			buffer.WriteString("]")
+		}
+		if idx < len(path) {
+			buffer.WriteString(".")
+		}
+	}
+	return buffer.String()
 }
 
 // The function to call when checking for tab completion on the given path.
-// The path can contain wildcards.
-func (p Path) Completer(project *Project, query string) []string {
+func Completer(path string, project *model.Project) []string {
 	backup := readline.CompletionAppendChar
 	readline.CompletionAppendChar = 0
 
+	// lazy initialization
+	if currentContext == nil {
+		currentContext = project
+	}
+
 	var results []string
-	if p == Root {
+	if path == "" {
 		tags, err := reflections.Tags(project, "json")
 		if err != nil {
 			return nil
 		}
 		for _, tagName := range tags {
-			if strings.HasPrefix(tagName, query) {
+			if strings.HasPrefix(tagName, path) {
 				results = append(results, tagName)
 			}
 		}
@@ -50,10 +160,34 @@ func (p Path) Completer(project *Project, query string) []string {
 	return results
 }
 
-// Resolves a path like "staging-group.*.auto-start" or "'server-groups[2..4].profile"
-// to a slice of full qualified paths. If the path cannot be resolved, an error is returned.
-func (p Path) Resolve(project *Project) ([]Path, error) {
+// Resolves a path like "server-groups[2:4].profile" to a slice of full qualified paths.
+// If the path cannot be resolved, an error is returned.
+func Resolve(path string, project *model.Project) ([]Path, error) {
 	return nil, nil
+}
+
+// Changes the current path and context
+func Cd(path string, project *model.Project) error {
+	// TODO Validate path
+
+	// TODO update CurrentPath and currentContext
+	return nil
+}
+
+func split(path string) ([]string, string) {
+	var start []string
+	var reminder string
+
+	parts := strings.Split(path, ".")
+	length := len(parts)
+	if length != 0 {
+		start = parts[:length-1]
+		reminder = parts[length-1]
+	} else {
+		start = []string{""}
+		reminder = path
+	}
+	return start, reminder
 }
 
 // ------------------------------------------------------ from here copied from text/template/parse/lex.go

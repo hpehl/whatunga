@@ -102,5 +102,5 @@ func version() string {
 }
 
 func prompt(project *model.Project) string {
-	return fmt.Sprintf("\n[%s:%s @ %s]> ", project.Name, project.Version, model.CurrentContext)
+	return fmt.Sprintf("\n[%s:%s @ /%s]> ", project.Name, project.Version, model.CurrentPath)
 }
