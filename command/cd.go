@@ -3,6 +3,8 @@ package command
 import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
+	"github.com/hpehl/whatunga/path"
+	"github.com/bobappleyard/readline"
 )
 
 var cdUsage = "cd <path>"
@@ -23,8 +25,8 @@ path segment with ' in that case:
 changes the current context to the fifth server of the third host.`,
 	// tab completer
 	func(project *model.Project, query, _ string) []string {
-
-		return model.CurrentPath.Completer(project, query)
+		readline.CompletionAppendChar = 0
+		return path.CurrentPath.Completer(project, query)
 	},
 	// action
 	func(project *model.Project, args []string) error {
@@ -34,6 +36,7 @@ changes the current context to the fifth server of the third host.`,
 		if len(args) > 1 {
 			return fmt.Errorf("Too many arguments. Usage: %s", cdUsage)
 		}
-		return model.CurrentPath.Cd(project, args[0])
+		return nil
+		//		return model.CurrentPath.Cd(project, args[0])
 	},
 }

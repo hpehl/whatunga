@@ -3,36 +3,43 @@ package path
 import (
 	"bytes"
 	"fmt"
-	"github.com/bobappleyard/readline"
 	"github.com/hpehl/whatunga/model"
 	"github.com/oleiade/reflections"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 )
 
 const (
-	Attribute    int = iota
-	Object           = iota
-	Numeric          = iota
-	AlphaNumeric     = iota
-	Undefined        = -1
+	// SegmentKind
+	PlainSegment SegmentKind = iota
+	IndexSegment
+	RangeSegment
+
+	// IndexKind
+	NumericIndex IndexKind = iota
+	AlphaNumericIndex
+
+	// Undefined range
+	Undefined int = -1
 )
 
-type Kind int
+type SegmentKind int
+
+type IndexKind int
 
 type Path []Segment
 
 type Segment struct {
 	Name  string
+	Kind  SegmentKind
 	Index Index
 	Range Range
 }
 
 type Index struct {
-	Kind  int
+	Kind  IndexKind
 	Value interface{}
 }
 
@@ -40,30 +47,31 @@ type Range struct {
 	From, To int
 }
 
-var EmptyIndex Index = Index{Undefined, nil}
-var EmptyRange Range = Range{Undefined, Undefined}
-
-// regular expression for segments with an index / range
+// regular expression to distinguish between the different segments
 var plainSegment = regexp.MustCompile(`^([\w-]+)$`)
 var indexSegment = regexp.MustCompile(`^([\w-]+)\[((\d+)|([A-Za-z_-]+))\]$`)
 var rangeSegment = regexp.MustCompile(`^([\w-]+)\[((\d*)(:)(\d*))\]$`)
 
-var CurrentPath string = ""
-var currentContext interface{} = nil
+// the current path which is used by the commands and the shell
+var CurrentPath Path = []Segment{}
 
 // Turns a string into a path
 func Parse(p string) (Path, error) {
+	if p == "" {
+		return make(Path, 0), nil
+	}
+
 	var path Path
 	segments := strings.Split(p, ".")
-
 	for _, s := range segments {
-		segment := Segment{"", EmptyIndex, EmptyRange}
+		segment := Segment{"", PlainSegment, Index{}, Range{Undefined, Undefined}}
 
 		if s != "" {
 			// check most specific re first!
 			if rangeSegment.MatchString(s) {
 				groups := rangeSegment.FindStringSubmatch(s)
 				segment.Name = groups[1]
+				segment.Kind = RangeSegment
 				if groups[3] != "" {
 					from, err := strconv.Atoi(groups[3])
 					if err != nil {
@@ -82,23 +90,25 @@ func Parse(p string) (Path, error) {
 			} else if indexSegment.MatchString(s) {
 				groups := indexSegment.FindStringSubmatch(s)
 				segment.Name = groups[1]
+				segment.Kind = IndexSegment
 				if groups[3] != "" {
 					// numeric index
 					index, err := strconv.Atoi(groups[3])
 					if err != nil {
 						return nil, fmt.Errorf(`Invalid path "%s": "%s" is not a valid numeric index`, p, groups[3])
 					}
-					segment.Index.Kind = Numeric
+					segment.Index.Kind = NumericIndex
 					segment.Index.Value = index
 				} else if groups[4] != "" {
 					// alpha-numeric range
-					segment.Index.Kind = AlphaNumeric
+					segment.Index.Kind = AlphaNumericIndex
 					segment.Index.Value = groups[4]
 				}
 
 			} else if plainSegment.MatchString(s) {
 				groups := plainSegment.FindStringSubmatch(s)
 				segment.Name = groups[1]
+				segment.Kind = PlainSegment
 
 			} else {
 				return nil, fmt.Errorf(`Invalid segment "%s" in path "%s"`, s, p)
@@ -109,628 +119,186 @@ func Parse(p string) (Path, error) {
 	return path, nil
 }
 
+// Get the current context for the specified path. If the path contains undefined ranges or points to a none-existing
+// property of the project model, an error is returned.
+func (path Path) Context(project *model.Project) (interface{}, error) {
+	var context interface{} = project
+
+	for _, segment := range path {
+
+		// Find field referenced by the tag <segment.Name>
+		tags, err := reflections.Tags(context, "json")
+		if err != nil {
+			return nil, fmt.Errorf(`Invalid path "%s": %s.`, path, err)
+		}
+		var fieldName = ""
+		for name, tag := range tags {
+			if tag == segment.Name {
+				fieldName = name
+				break
+			}
+		}
+		if fieldName == "" {
+			return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" not found in project model.`, path, segment)
+		}
+
+		// Check the field type
+		kind, err := reflections.GetFieldKind(context, fieldName)
+		if err != nil {
+			return nil, fmt.Errorf(`Invalid path "%s": %s.`, path, err)
+		}
+
+		switch kind {
+		case reflect.Struct:
+			if segment.Kind == IndexSegment || segment.Kind == RangeSegment {
+				return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" does not refer to a collection.`, path, segment)
+			}
+			nested, err := reflections.GetField(context, fieldName)
+			if err != nil {
+				return nil, fmt.Errorf(`Invalid path "%s": %s.`, path, err)
+			}
+			context = nested
+
+		case reflect.Slice:
+			switch segment.Kind {
+
+			case PlainSegment:
+				return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" does not refer to an object.`, path, segment)
+
+			case IndexSegment:
+				slice, err := reflections.GetField(context, fieldName)
+				if err != nil {
+					return nil, fmt.Errorf(`Invalid path "%s": %s.`, path, err)
+				}
+				sliceValue := reflect.ValueOf(slice)
+
+				if segment.Index.Kind == NumericIndex {
+					var index = segment.Index.Value.(int)
+					if index < sliceValue.Len() || index >= sliceValue.Len() {
+						return nil, fmt.Errorf(`Invalid path "%s": Index in segment "%s" is out of bounds.`, path, segment)
+					}
+					context = sliceValue.Index(index).Interface()
+
+				} else if segment.Index.Kind == AlphaNumericIndex {
+					var indexFound = false
+					for i := 0; i < sliceValue.Len(); i++ {
+						element := sliceValue.Index(i).Interface()
+						if exists, _ := reflections.HasField(element, "Name"); exists {
+							name, _ := reflections.GetField(element, "Name")
+							if segment.Index.Value == name {
+								indexFound = true
+								context = element
+								break
+							}
+						}
+					}
+					if !indexFound {
+						return nil, fmt.Errorf(`Invalid path "%s": Named index in segment "%s" not found.`, path, segment)
+					}
+				}
+
+			case RangeSegment:
+				return nil, fmt.Errorf(`Invalid path "%s": Range in segment "%s" not supported.`, path, segment)
+			}
+		default:
+			return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" does not refer to an object or collection.`, path, segment)
+		}
+
+		if context == nil {
+			return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" not found.`, path, segment)
+		}
+	}
+	return context, nil
+}
+
+// The function to call when checking for tab completion on the given path.
+func (path Path) Completer(project *model.Project, query string) []string {
+	var results []string
+	var queryPath Path
+	var reminder string
+	var err error
+
+	lastIndex := strings.LastIndex(query, ".")
+	if lastIndex != -1 {
+		queryPath, err = Parse(query[0:lastIndex])
+		reminder = query[lastIndex+1:]
+	} else {
+		queryPath = path
+		reminder = query
+	}
+	//	fmt.Printf("\nlen(currentPath): %d, currentPath: \"%s\", len(queryPath): %d, queryPath: \"%s\", reminder: \"%s\", err: %v", len(path), path, len(queryPath), queryPath, reminder, err)
+
+	if err == nil {
+		fullPath := path.Append(queryPath)
+		//		fmt.Printf("\nlen(fullPath): %d, fullPath: \"%s\"\n", len(fullPath), fullPath)
+		context, err := fullPath.Context(project)
+		if err == nil {
+			tags, err := reflections.Tags(context, "json")
+			if err != nil {
+				return nil
+			}
+			for _, tagName := range tags {
+				if strings.HasPrefix(tagName, reminder) {
+					//					if fullPath.IsEmpty() {
+					results = append(results, tagName)
+					//					} else {
+					//						results = append(results, fmt.Sprintf("%s.%s", fullPath, tagName))
+					//					}
+				}
+			}
+		}
+	}
+	return results
+}
+
+// Append the specified path to this path and return the result as a new path
+func (self Path) Append(path Path) Path {
+	var result Path
+	if len(self) > 0 {
+		copy(result, self)
+	}
+	for _, segment := range path {
+		result = append(result, segment)
+	}
+	return result
+}
+
+func (path Path) IsEmpty() bool {
+	return len(path) == 0
+}
+
 func (path Path) String() string {
+	if len(path) == 0 {
+		return ""
+	}
+
 	var buffer bytes.Buffer
 	for idx, segment := range path {
-		buffer.WriteString(segment.Name)
-		if segment.Index != EmptyIndex {
-			buffer.WriteString(fmt.Sprintf("[%v]", segment.Index.Value))
-		} else if segment.Range != EmptyRange {
-			buffer.WriteString("[")
-			if segment.Range.From != Undefined {
-				buffer.WriteString(fmt.Sprint("%d", segment.Range.From))
-			}
-			buffer.WriteString(":")
-			if segment.Range.To != Undefined {
-				buffer.WriteString(fmt.Sprint("%d", segment.Range.To))
-			}
-			buffer.WriteString("]")
-		}
-		if idx < len(path) {
+		buffer.WriteString(fmt.Sprint(segment))
+		if idx < len(path)-1 {
 			buffer.WriteString(".")
 		}
 	}
 	return buffer.String()
 }
 
-// The function to call when checking for tab completion on the given path.
-func Completer(path string, project *model.Project) []string {
-	backup := readline.CompletionAppendChar
-	readline.CompletionAppendChar = 0
+func (segment Segment) String() string {
+	var buffer bytes.Buffer
+	buffer.WriteString(segment.Name)
 
-	// lazy initialization
-	if currentContext == nil {
-		currentContext = project
-	}
-
-	var results []string
-	if path == "" {
-		tags, err := reflections.Tags(project, "json")
-		if err != nil {
-			return nil
+	switch segment.Kind {
+	case RangeSegment:
+		buffer.WriteString("[")
+		if segment.Range.From != Undefined {
+			buffer.WriteString(fmt.Sprintf("%d", segment.Range.From))
 		}
-		for _, tagName := range tags {
-			if strings.HasPrefix(tagName, path) {
-				results = append(results, tagName)
-			}
+		buffer.WriteString(":")
+		if segment.Range.To != Undefined {
+			buffer.WriteString(fmt.Sprintf("%d", segment.Range.To))
 		}
+		buffer.WriteString("]")
+	case IndexSegment:
+		buffer.WriteString(fmt.Sprintf("[%v]", segment.Index.Value))
 	}
-
-	readline.CompletionAppendChar = backup
-	return results
-}
-
-// Resolves a path like "server-groups[2:4].profile" to a slice of full qualified paths.
-// If the path cannot be resolved, an error is returned.
-func Resolve(path string, project *model.Project) ([]Path, error) {
-	return nil, nil
-}
-
-// Changes the current path and context
-func Cd(path string, project *model.Project) error {
-	// TODO Validate path
-
-	// TODO update CurrentPath and currentContext
-	return nil
-}
-
-func split(path string) ([]string, string) {
-	var start []string
-	var reminder string
-
-	parts := strings.Split(path, ".")
-	length := len(parts)
-	if length != 0 {
-		start = parts[:length-1]
-		reminder = parts[length-1]
-	} else {
-		start = []string{""}
-		reminder = path
-	}
-	return start, reminder
-}
-
-// ------------------------------------------------------ from here copied from text/template/parse/lex.go
-
-// Pos represents a byte position in the original input text from which
-// this template was parsed.
-type Pos int
-
-// Item represents a token or text string returned from the scanner.
-type Item struct {
-	typ ItemType // The type of this Item.
-	pos Pos      // The starting position, in bytes, of this Item in the input string.
-	val string   // The value of this Item.
-}
-
-func (i Item) String() string {
-	switch {
-	case i.typ == itemEOF:
-		return "EOF"
-	case i.typ == itemError:
-		return i.val
-	case i.typ > itemKeyword:
-		return fmt.Sprintf("<%s>", i.val)
-	case len(i.val) > 10:
-		return fmt.Sprintf("%.10q...", i.val)
-	}
-	return fmt.Sprintf("%q", i.val)
-}
-
-// ItemType identifies the type of lex items.
-type ItemType int
-
-const (
-	itemError        ItemType = iota // error occurred; value is text of error
-	itemBool                         // boolean constant
-	itemChar                         // printable ASCII character; grab bag for comma etc.
-	itemCharConstant                 // character constant
-	itemComplex                      // complex constant (1+2i); imaginary is just a number
-	itemColonEquals                  // colon-equals (':=') introducing a declaration
-	itemEOF
-	itemField      // alphanumeric identifier starting with '.'
-	itemIdentifier // alphanumeric identifier not starting with '.'
-	itemLeftDelim  // left action delimiter
-	itemLeftParen  // '(' inside action
-	itemNumber     // simple number, including imaginary
-	itemPipe       // pipe symbol
-	itemRawString  // raw quoted string (includes quotes)
-	itemRightDelim // right action delimiter
-	itemRightParen // ')' inside action
-	itemSpace      // run of spaces separating arguments
-	itemString     // quoted string (includes quotes)
-	itemText       // plain text
-	itemVariable   // variable starting with '$', such as '$' or  '$1' or '$hello'
-	// Keywords appear after all the rest.
-	itemKeyword  // used only to delimit the keywords
-	itemDot      // the cursor, spelled '.'
-	itemDefine   // define keyword
-	itemElse     // else keyword
-	itemEnd      // end keyword
-	itemIf       // if keyword
-	itemNil      // the untyped nil constant, easiest to treat as a keyword
-	itemRange    // range keyword
-	itemTemplate // template keyword
-	itemWith     // with keyword
-)
-
-var key = map[string]ItemType{
-	".":        itemDot,
-	"define":   itemDefine,
-	"else":     itemElse,
-	"end":      itemEnd,
-	"if":       itemIf,
-	"range":    itemRange,
-	"nil":      itemNil,
-	"template": itemTemplate,
-	"with":     itemWith,
-}
-
-const eof = -1
-
-// StateFn represents the state of the scanner as a function that returns the next state.
-type StateFn func(*lexer) StateFn
-
-// lexer holds the state of the scanner.
-type lexer struct {
-	name       string    // the name of the input; used only for error reports
-	input      string    // the string being scanned
-	leftDelim  string    // start of action
-	rightDelim string    // end of action
-	state      StateFn   // the next lexing function to enter
-	pos        Pos       // current position in the input
-	start      Pos       // start position of this Item
-	width      Pos       // width of last rune read from input
-	lastPos    Pos       // position of most recent Item returned by nextItem
-	items      chan Item // channel of scanned items
-	parenDepth int       // nesting depth of ( ) exprs
-}
-
-// next returns the next rune in the input.
-func (l *lexer) next() rune {
-	if int(l.pos) >= len(l.input) {
-		l.width = 0
-		return eof
-	}
-	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
-	l.width = Pos(w)
-	l.pos += l.width
-	return r
-}
-
-// peek returns but does not consume the next rune in the input.
-func (l *lexer) peek() rune {
-	r := l.next()
-	l.backup()
-	return r
-}
-
-// backup steps back one rune. Can only be called once per call of next.
-func (l *lexer) backup() {
-	l.pos -= l.width
-}
-
-// emit passes an Item back to the client.
-func (l *lexer) emit(t ItemType) {
-	l.items <- Item{t, l.start, l.input[l.start:l.pos]}
-	l.start = l.pos
-}
-
-// ignore skips over the pending input before this point.
-func (l *lexer) ignore() {
-	l.start = l.pos
-}
-
-// accept consumes the next rune if it's from the valid set.
-func (l *lexer) accept(valid string) bool {
-	if strings.IndexRune(valid, l.next()) >= 0 {
-		return true
-	}
-	l.backup()
-	return false
-}
-
-// acceptRun consumes a run of runes from the valid set.
-func (l *lexer) acceptRun(valid string) {
-	for strings.IndexRune(valid, l.next()) >= 0 {
-	}
-	l.backup()
-}
-
-// lineNumber reports which line we're on, based on the position of
-// the previous Item returned by nextItem. Doing it this way
-// means we don't have to worry about peek double counting.
-func (l *lexer) lineNumber() int {
-	return 1 + strings.Count(l.input[:l.lastPos], "\n")
-}
-
-// errorf returns an error token and terminates the scan by passing
-// back a nil pointer that will be the next state, terminating l.nextItem.
-func (l *lexer) errorf(format string, args ...interface{}) StateFn {
-	l.items <- Item{itemError, l.start, fmt.Sprintf(format, args...)}
-	return nil
-}
-
-// nextItem returns the next Item from the input.
-func (l *lexer) nextItem() Item {
-	Item := <-l.items
-	l.lastPos = Item.pos
-	return Item
-}
-
-// lex creates a new scanner for the input string.
-func lex(name, input, left, right string) *lexer {
-	if left == "" {
-		left = leftDelim
-	}
-	if right == "" {
-		right = rightDelim
-	}
-	l := &lexer{
-		name:       name,
-		input:      input,
-		leftDelim:  left,
-		rightDelim: right,
-		items:      make(chan Item),
-	}
-	go l.run()
-	return l
-}
-
-// run runs the state machine for the lexer.
-func (l *lexer) run() {
-	for l.state = lexText; l.state != nil; {
-		l.state = l.state(l)
-	}
-}
-
-// state functions
-
-const (
-	leftDelim    = "{{"
-	rightDelim   = "}}"
-	leftComment  = "/*"
-	rightComment = "*/"
-)
-
-// lexText scans until an opening action delimiter, "{{".
-func lexText(l *lexer) StateFn {
-	for {
-		if strings.HasPrefix(l.input[l.pos:], l.leftDelim) {
-			if l.pos > l.start {
-				l.emit(itemText)
-			}
-			return lexLeftDelim
-		}
-		if l.next() == eof {
-			break
-		}
-	}
-	// Correctly reached EOF.
-	if l.pos > l.start {
-		l.emit(itemText)
-	}
-	l.emit(itemEOF)
-	return nil
-}
-
-// lexLeftDelim scans the left delimiter, which is known to be present.
-func lexLeftDelim(l *lexer) StateFn {
-	l.pos += Pos(len(l.leftDelim))
-	if strings.HasPrefix(l.input[l.pos:], leftComment) {
-		return lexComment
-	}
-	l.emit(itemLeftDelim)
-	l.parenDepth = 0
-	return lexInsideAction
-}
-
-// lexComment scans a comment. The left comment marker is known to be present.
-func lexComment(l *lexer) StateFn {
-	l.pos += Pos(len(leftComment))
-	i := strings.Index(l.input[l.pos:], rightComment)
-	if i < 0 {
-		return l.errorf("unclosed comment")
-	}
-	l.pos += Pos(i + len(rightComment))
-	if !strings.HasPrefix(l.input[l.pos:], l.rightDelim) {
-		return l.errorf("comment ends before closing delimiter")
-
-	}
-	l.pos += Pos(len(l.rightDelim))
-	l.ignore()
-	return lexText
-}
-
-// lexRightDelim scans the right delimiter, which is known to be present.
-func lexRightDelim(l *lexer) StateFn {
-	l.pos += Pos(len(l.rightDelim))
-	l.emit(itemRightDelim)
-	return lexText
-}
-
-// lexInsideAction scans the elements inside action delimiters.
-func lexInsideAction(l *lexer) StateFn {
-	// Either number, quoted string, or identifier.
-	// Spaces separate arguments; runs of spaces turn into itemSpace.
-	// Pipe symbols separate and are emitted.
-	if strings.HasPrefix(l.input[l.pos:], l.rightDelim) {
-		if l.parenDepth == 0 {
-			return lexRightDelim
-		}
-		return l.errorf("unclosed left paren")
-	}
-	switch r := l.next(); {
-	case r == eof || isEndOfLine(r):
-		return l.errorf("unclosed action")
-	case isSpace(r):
-		return lexSpace
-	case r == ':':
-		if l.next() != '=' {
-			return l.errorf("expected :=")
-		}
-		l.emit(itemColonEquals)
-	case r == '|':
-		l.emit(itemPipe)
-	case r == '"':
-		return lexQuote
-	case r == '`':
-		return lexRawQuote
-	case r == '$':
-		return lexVariable
-	case r == '\'':
-		return lexChar
-	case r == '.':
-		// special look-ahead for ".field" so we don't break l.backup().
-		if l.pos < Pos(len(l.input)) {
-			r := l.input[l.pos]
-			if r < '0' || '9' < r {
-				return lexField
-			}
-		}
-		fallthrough // '.' can start a number.
-	case r == '+' || r == '-' || ('0' <= r && r <= '9'):
-		l.backup()
-		return lexNumber
-	case isAlphaNumeric(r):
-		l.backup()
-		return lexIdentifier
-	case r == '(':
-		l.emit(itemLeftParen)
-		l.parenDepth++
-		return lexInsideAction
-	case r == ')':
-		l.emit(itemRightParen)
-		l.parenDepth--
-		if l.parenDepth < 0 {
-			return l.errorf("unexpected right paren %#U", r)
-		}
-		return lexInsideAction
-	case r <= unicode.MaxASCII && unicode.IsPrint(r):
-		l.emit(itemChar)
-		return lexInsideAction
-	default:
-		return l.errorf("unrecognized character in action: %#U", r)
-	}
-	return lexInsideAction
-}
-
-// lexSpace scans a run of space characters.
-// One space has already been seen.
-func lexSpace(l *lexer) StateFn {
-	for isSpace(l.peek()) {
-		l.next()
-	}
-	l.emit(itemSpace)
-	return lexInsideAction
-}
-
-// lexIdentifier scans an alphanumeric.
-func lexIdentifier(l *lexer) StateFn {
-Loop:
-	for {
-		switch r := l.next(); {
-		case isAlphaNumeric(r):
-			// absorb.
-		default:
-			l.backup()
-			word := l.input[l.start:l.pos]
-			if !l.atTerminator() {
-				return l.errorf("bad character %#U", r)
-			}
-			switch {
-			case key[word] > itemKeyword:
-				l.emit(key[word])
-			case word[0] == '.':
-				l.emit(itemField)
-			case word == "true", word == "false":
-				l.emit(itemBool)
-			default:
-				l.emit(itemIdentifier)
-			}
-			break Loop
-		}
-	}
-	return lexInsideAction
-}
-
-// lexField scans a field: .Alphanumeric.
-// The . has been scanned.
-func lexField(l *lexer) StateFn {
-	return lexFieldOrVariable(l, itemField)
-}
-
-// lexVariable scans a Variable: $Alphanumeric.
-// The $ has been scanned.
-func lexVariable(l *lexer) StateFn {
-	if l.atTerminator() { // Nothing interesting follows -> "$".
-		l.emit(itemVariable)
-		return lexInsideAction
-	}
-	return lexFieldOrVariable(l, itemVariable)
-}
-
-// lexVariable scans a field or variable: [.$]Alphanumeric.
-// The . or $ has been scanned.
-func lexFieldOrVariable(l *lexer, typ ItemType) StateFn {
-	if l.atTerminator() { // Nothing interesting follows -> "." or "$".
-		if typ == itemVariable {
-			l.emit(itemVariable)
-		} else {
-			l.emit(itemDot)
-		}
-		return lexInsideAction
-	}
-	var r rune
-	for {
-		r = l.next()
-		if !isAlphaNumeric(r) {
-			l.backup()
-			break
-		}
-	}
-	if !l.atTerminator() {
-		return l.errorf("bad character %#U", r)
-	}
-	l.emit(typ)
-	return lexInsideAction
-}
-
-// atTerminator reports whether the input is at valid termination character to
-// appear after an identifier. Breaks .X.Y into two pieces. Also catches cases
-// like "$x+2" not being acceptable without a space, in case we decide one
-// day to implement arithmetic.
-func (l *lexer) atTerminator() bool {
-	r := l.peek()
-	if isSpace(r) || isEndOfLine(r) {
-		return true
-	}
-	switch r {
-	case eof, '.', ',', '|', ':', ')', '(':
-		return true
-	}
-	// Does r start the delimiter? This can be ambiguous (with delim=="//", $x/2 will
-	// succeed but should fail) but only in extremely rare cases caused by willfully
-	// bad choice of delimiter.
-	if rd, _ := utf8.DecodeRuneInString(l.rightDelim); rd == r {
-		return true
-	}
-	return false
-}
-
-// lexChar scans a character constant. The initial quote is already
-// scanned. Syntax checking is done by the parser.
-func lexChar(l *lexer) StateFn {
-Loop:
-	for {
-		switch l.next() {
-		case '\\':
-			if r := l.next(); r != eof && r != '\n' {
-				break
-			}
-			fallthrough
-		case eof, '\n':
-			return l.errorf("unterminated character constant")
-		case '\'':
-			break Loop
-		}
-	}
-	l.emit(itemCharConstant)
-	return lexInsideAction
-}
-
-// lexNumber scans a number: decimal, octal, hex, float, or imaginary. This
-// isn't a perfect number scanner - for instance it accepts "." and "0x0.2"
-// and "089" - but when it's wrong the input is invalid and the parser (via
-// strconv) will notice.
-func lexNumber(l *lexer) StateFn {
-	if !l.scanNumber() {
-		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
-	}
-	if sign := l.peek(); sign == '+' || sign == '-' {
-		// Complex: 1+2i. No spaces, must end in 'i'.
-		if !l.scanNumber() || l.input[l.pos-1] != 'i' {
-			return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
-		}
-		l.emit(itemComplex)
-	} else {
-		l.emit(itemNumber)
-	}
-	return lexInsideAction
-}
-
-func (l *lexer) scanNumber() bool {
-	// Optional leading sign.
-	l.accept("+-")
-	// Is it hex?
-	digits := "0123456789"
-	if l.accept("0") && l.accept("xX") {
-		digits = "0123456789abcdefABCDEF"
-	}
-	l.acceptRun(digits)
-	if l.accept(".") {
-		l.acceptRun(digits)
-	}
-	if l.accept("eE") {
-		l.accept("+-")
-		l.acceptRun("0123456789")
-	}
-	// Is it imaginary?
-	l.accept("i")
-	// Next thing mustn't be alphanumeric.
-	if isAlphaNumeric(l.peek()) {
-		l.next()
-		return false
-	}
-	return true
-}
-
-// lexQuote scans a quoted string.
-func lexQuote(l *lexer) StateFn {
-Loop:
-	for {
-		switch l.next() {
-		case '\\':
-			if r := l.next(); r != eof && r != '\n' {
-				break
-			}
-			fallthrough
-		case eof, '\n':
-			return l.errorf("unterminated quoted string")
-		case '"':
-			break Loop
-		}
-	}
-	l.emit(itemString)
-	return lexInsideAction
-}
-
-// lexRawQuote scans a raw quoted string.
-func lexRawQuote(l *lexer) StateFn {
-Loop:
-	for {
-		switch l.next() {
-		case eof, '\n':
-			return l.errorf("unterminated raw quoted string")
-		case '`':
-			break Loop
-		}
-	}
-	l.emit(itemRawString)
-	return lexInsideAction
-}
-
-// isSpace reports whether r is a space character.
-func isSpace(r rune) bool {
-	return r == ' ' || r == '\t'
-}
-
-// isEndOfLine reports whether r is an end-of-line character.
-func isEndOfLine(r rune) bool {
-	return r == '\r' || r == '\n'
-}
-
-// isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
-func isAlphaNumeric(r rune) bool {
-	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
+	return buffer.String()
 }

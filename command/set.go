@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
+	"github.com/hpehl/whatunga/path"
 )
 
 var setUsage = "set path value,..."
@@ -14,7 +15,7 @@ var set = Command{
 	"Modifies an object / attribute of the project model. TODO: Describe path for set.",
 	// tab completer
 	func(project *model.Project, query, _ string) []string {
-		return model.CurrentPath.Completer(project, query)
+		return path.CurrentPath.Completer(project, query)
 	},
 	// action
 	func(_ *model.Project, args []string) error {

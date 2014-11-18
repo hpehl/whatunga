@@ -5,6 +5,7 @@ import (
 	"github.com/bobappleyard/readline"
 	"github.com/hpehl/whatunga/command"
 	"github.com/hpehl/whatunga/model"
+	wpath "github.com/hpehl/whatunga/path"
 	"github.com/mitchellh/go-homedir"
 	"io"
 	"os"
@@ -37,7 +38,6 @@ func init() {
 	if err == nil {
 		readline.LoadHistory(path.Join(home, ".whatunga_history"))
 	}
-	readline.CompletionAppendChar = ' '
 }
 
 func lateInit(project *model.Project) {
@@ -78,7 +78,7 @@ func Start(info string, project *model.Project) {
 			continue
 		}
 		readline.AddHistory(cmdline)
-		fmt.Println() // general new line after each cmd execution for better formatting
+		fmt.Println() // general new line before each cmd execution for better formatting
 
 		tokens := strings.Fields(cmdline)
 		cmd, valid := command.Registry[tokens[0]]
@@ -102,5 +102,5 @@ func version() string {
 }
 
 func prompt(project *model.Project) string {
-	return fmt.Sprintf("\n[%s:%s @ /%s]> ", project.Name, project.Version, model.CurrentPath)
+	return fmt.Sprintf("\n[%s:%s @ /%s]> ", project.Name, project.Version, wpath.CurrentPath)
 }

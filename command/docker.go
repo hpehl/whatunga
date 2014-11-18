@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
 	"strings"
+	"github.com/bobappleyard/readline"
 )
 
 var dockerUsage = "docker create|push|start"
@@ -17,6 +18,8 @@ var docker = Command{
     - start: Starts the docker images.`,
 	// tab completer
 	func(_ *model.Project, query, _ string) []string {
+		readline.CompletionAppendChar = ' '
+
 		var results []string
 		subCommands := [...]string{"create", "push", "start"}
 		for _, subCommand := range subCommands {

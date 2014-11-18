@@ -24,7 +24,7 @@ var exit = Command{
 		if err == nil {
 			readline.SaveHistory(path.Join(home, ".whatunga_history"))
 		}
-		fmt.Println("Haere rā")
+		fmt.Println("Haere rā\n")
 		os.Exit(0)
 		return nil
 	},

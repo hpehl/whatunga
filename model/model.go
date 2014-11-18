@@ -202,8 +202,8 @@ func (c Config) String() string {
 
 type Templates struct {
 	Domain     string `json:"domain"`
-	HostMaster string `json:"host-master`
-	HostSlave  string `json:host-slave`
+	HostMaster string `json:"host-master"`
+	HostSlave  string `json:"host-slave"`
 }
 
 type ServerGroup struct {
