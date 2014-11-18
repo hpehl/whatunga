@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
-	"github.com/hpehl/whatunga/path"
 )
 
 var rmUsage = "rm <path>"
@@ -14,8 +13,9 @@ var rm = Command{
 	rmUsage,
 	"Removes an object from the project model. TODO: Describe path for rm.",
 	// tab completer
-	func(project *model.Project, query, _ string) []string {
-		return path.CurrentPath.Completer(project, query)
+	func(_ *model.Project, _, _ string) []string {
+		// TODO not yet implemented
+		return nil
 	},
 	// action
 	func(_ *model.Project, args []string) error {
@@ -25,6 +25,7 @@ var rm = Command{
 		if len(args) > 1 {
 			return fmt.Errorf("Too many arguments. Usage: %s", rmUsage)
 		}
+		fmt.Println("Not yet implemented!")
 		return nil
 	},
 }

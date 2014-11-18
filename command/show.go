@@ -22,7 +22,7 @@ var show = Command{
 	// tab completer
 	func(_ *model.Project, query, _ string) []string {
 		var results []string
-		subCommands := [...]string{"config", "server-groups", "hosts", "source", "docker"}
+		subCommands := [...]string{"config", "source", "docker"}
 		for _, subCommand := range subCommands {
 			if strings.HasPrefix(subCommand, query) {
 				results = append(results, subCommand)
@@ -41,20 +41,21 @@ var show = Command{
 
 		switch args[0] {
 		case "config":
-			fmt.Printf("\n%s\n", project.Config)
-		case "server-groups":
-			fmt.Printf("\n%v\n", project.ServerGroups)
-		case "hosts":
-			fmt.Printf("\n%v\n", project.Hosts)
+			data, err := json.MarshalIndent(project.Config, "", "  ")
+			if err == nil {
+				fmt.Printf("%s\n", string(data))
+			} else {
+				return err
+			}
 		case "source":
 			data, err := json.MarshalIndent(project, "", "  ")
 			if err == nil {
-				fmt.Printf("\n%s\n", string(data))
+				fmt.Printf("%s\n", string(data))
 			} else {
 				return err
 			}
 		case "docker":
-			fmt.Printf("\nDocker not yet implemented\n")
+			fmt.Printf("Docker not yet implemented\n")
 		default:
 			return fmt.Errorf(`Unsupported argument "%s". Usage: %s`, args[0], showUsage)
 		}

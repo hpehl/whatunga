@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
-	"github.com/hpehl/whatunga/path"
 )
 
 var setUsage = "set path value,..."
@@ -14,8 +13,9 @@ var set = Command{
 	setUsage,
 	"Modifies an object / attribute of the project model. TODO: Describe path for set.",
 	// tab completer
-	func(project *model.Project, query, _ string) []string {
-		return path.CurrentPath.Completer(project, query)
+	func(_ *model.Project, _, _ string) []string {
+		// TODO not yet implemented
+		return nil
 	},
 	// action
 	func(_ *model.Project, args []string) error {
@@ -25,6 +25,7 @@ var set = Command{
 		if len(args) > 2 {
 			return fmt.Errorf("Too many arguments. Usage: %s", setUsage)
 		}
+		fmt.Println("Not yet implemented!")
 		return nil
 	},
 }

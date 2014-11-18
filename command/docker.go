@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
 	"strings"
-	"github.com/bobappleyard/readline"
 )
 
 var dockerUsage = "docker create|push|start"
@@ -18,8 +17,6 @@ var docker = Command{
     - start: Starts the docker images.`,
 	// tab completer
 	func(_ *model.Project, query, _ string) []string {
-		readline.CompletionAppendChar = ' '
-
 		var results []string
 		subCommands := [...]string{"create", "push", "start"}
 		for _, subCommand := range subCommands {
@@ -39,11 +36,11 @@ var docker = Command{
 		}
 		switch args[0] {
 		case "create":
-			fmt.Printf("\nDocker create...\n")
+			fmt.Printf("Docker create...\n")
 		case "push":
-			fmt.Printf("\nDocker push...\n")
+			fmt.Printf("Docker push...\n")
 		case "start":
-			fmt.Printf("\nDocker start...\n")
+			fmt.Printf("Docker start...\n")
 		default:
 			return fmt.Errorf(`Unsupported argument "%s". Usage: %s`, args[0], dockerUsage)
 		}

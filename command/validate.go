@@ -21,6 +21,7 @@ var validate = Command{
 		if len(args) != 0 {
 			return fmt.Errorf("Illegal argument. Usage: %s", validateUsage)
 		}
+		fmt.Println("Not yet implemented!")
 		return nil
 	},
 }

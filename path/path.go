@@ -75,14 +75,14 @@ func Parse(p string) (Path, error) {
 				if groups[3] != "" {
 					from, err := strconv.Atoi(groups[3])
 					if err != nil {
-						return nil, fmt.Errorf(`Invalid path "%s": "%s:%s" is not a valid range`, p, groups[3], groups[5])
+						return nil, fmt.Errorf(`Unable to resolve path "%s": "%s:%s" is not a valid range`, p, groups[3], groups[5])
 					}
 					segment.Range.From = from
 				}
 				if groups[5] != "" {
 					to, err := strconv.Atoi(groups[5])
 					if err != nil {
-						return nil, fmt.Errorf(`Invalid path "%s": "%s:%s" is not a valid range`, p, groups[3], groups[5])
+						return nil, fmt.Errorf(`Unable to resolve path "%s": "%s:%s" is not a valid range`, p, groups[3], groups[5])
 					}
 					segment.Range.To = to
 				}
@@ -95,7 +95,7 @@ func Parse(p string) (Path, error) {
 					// numeric index
 					index, err := strconv.Atoi(groups[3])
 					if err != nil {
-						return nil, fmt.Errorf(`Invalid path "%s": "%s" is not a valid numeric index`, p, groups[3])
+						return nil, fmt.Errorf(`Unable to resolve path "%s": "%s" is not a valid numeric index`, p, groups[3])
 					}
 					segment.Index.Kind = NumericIndex
 					segment.Index.Value = index
@@ -119,9 +119,9 @@ func Parse(p string) (Path, error) {
 	return path, nil
 }
 
-// Get the current context for the specified path. If the path contains undefined ranges or points to a none-existing
-// property of the project model, an error is returned.
-func (path Path) Context(project *model.Project) (interface{}, error) {
+// Get the value of the project model the given path points to. The path must be unambiguous,
+// thus it must not contain ranges.
+func (path Path) Resolve(project *model.Project) (interface{}, error) {
 	var context interface{} = project
 
 	for _, segment := range path {
@@ -129,7 +129,7 @@ func (path Path) Context(project *model.Project) (interface{}, error) {
 		// Find field referenced by the tag <segment.Name>
 		tags, err := reflections.Tags(context, "json")
 		if err != nil {
-			return nil, fmt.Errorf(`Invalid path "%s": %s.`, path, err)
+			return nil, fmt.Errorf(`Unable to resolve path "%s": %s.`, path, err)
 		}
 		var fieldName = ""
 		for name, tag := range tags {
@@ -139,23 +139,23 @@ func (path Path) Context(project *model.Project) (interface{}, error) {
 			}
 		}
 		if fieldName == "" {
-			return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" not found in project model.`, path, segment)
+			return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" not found in project model.`, path, segment)
 		}
 
 		// Check the field type
 		kind, err := reflections.GetFieldKind(context, fieldName)
 		if err != nil {
-			return nil, fmt.Errorf(`Invalid path "%s": %s.`, path, err)
+			return nil, fmt.Errorf(`Unable to resolve path "%s": %s.`, path, err)
 		}
 
 		switch kind {
 		case reflect.Struct:
 			if segment.Kind == IndexSegment || segment.Kind == RangeSegment {
-				return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" does not refer to a collection.`, path, segment)
+				return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" does not refer to a collection.`, path, segment)
 			}
 			nested, err := reflections.GetField(context, fieldName)
 			if err != nil {
-				return nil, fmt.Errorf(`Invalid path "%s": %s.`, path, err)
+				return nil, fmt.Errorf(`Unable to resolve path "%s": %s.`, path, err)
 			}
 			context = nested
 
@@ -163,19 +163,19 @@ func (path Path) Context(project *model.Project) (interface{}, error) {
 			switch segment.Kind {
 
 			case PlainSegment:
-				return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" does not refer to an object.`, path, segment)
+				return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" does not refer to an object.`, path, segment)
 
 			case IndexSegment:
 				slice, err := reflections.GetField(context, fieldName)
 				if err != nil {
-					return nil, fmt.Errorf(`Invalid path "%s": %s.`, path, err)
+					return nil, fmt.Errorf(`Unable to resolve path "%s": %s.`, path, err)
 				}
 				sliceValue := reflect.ValueOf(slice)
 
 				if segment.Index.Kind == NumericIndex {
 					var index = segment.Index.Value.(int)
 					if index < sliceValue.Len() || index >= sliceValue.Len() {
-						return nil, fmt.Errorf(`Invalid path "%s": Index in segment "%s" is out of bounds.`, path, segment)
+						return nil, fmt.Errorf(`Unable to resolve path "%s": Index in segment "%s" is out of bounds.`, path, segment)
 					}
 					context = sliceValue.Index(index).Interface()
 
@@ -193,62 +193,22 @@ func (path Path) Context(project *model.Project) (interface{}, error) {
 						}
 					}
 					if !indexFound {
-						return nil, fmt.Errorf(`Invalid path "%s": Named index in segment "%s" not found.`, path, segment)
+						return nil, fmt.Errorf(`Unable to resolve path "%s": Named index in segment "%s" not found.`, path, segment)
 					}
 				}
 
 			case RangeSegment:
-				return nil, fmt.Errorf(`Invalid path "%s": Range in segment "%s" not supported.`, path, segment)
+				return nil, fmt.Errorf(`Unable to resolve path "%s": Range in segment "%s" not supported.`, path, segment)
 			}
 		default:
-			return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" does not refer to an object or collection.`, path, segment)
+			return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" does not refer to an object or collection.`, path, segment)
 		}
 
 		if context == nil {
-			return nil, fmt.Errorf(`Invalid path "%s": Segment "%s" not found.`, path, segment)
+			return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" not found.`, path, segment)
 		}
 	}
 	return context, nil
-}
-
-// The function to call when checking for tab completion on the given path.
-func (path Path) Completer(project *model.Project, query string) []string {
-	var results []string
-	var queryPath Path
-	var reminder string
-	var err error
-
-	lastIndex := strings.LastIndex(query, ".")
-	if lastIndex != -1 {
-		queryPath, err = Parse(query[0:lastIndex])
-		reminder = query[lastIndex+1:]
-	} else {
-		queryPath = path
-		reminder = query
-	}
-	//	fmt.Printf("\nlen(currentPath): %d, currentPath: \"%s\", len(queryPath): %d, queryPath: \"%s\", reminder: \"%s\", err: %v", len(path), path, len(queryPath), queryPath, reminder, err)
-
-	if err == nil {
-		fullPath := path.Append(queryPath)
-		//		fmt.Printf("\nlen(fullPath): %d, fullPath: \"%s\"\n", len(fullPath), fullPath)
-		context, err := fullPath.Context(project)
-		if err == nil {
-			tags, err := reflections.Tags(context, "json")
-			if err != nil {
-				return nil
-			}
-			for _, tagName := range tags {
-				if strings.HasPrefix(tagName, reminder) {
-					//					if fullPath.IsEmpty() {
-					results = append(results, tagName)
-					//					} else {
-					//						results = append(results, fmt.Sprintf("%s.%s", fullPath, tagName))
-					//					}
-				}
-			}
-		}
-	}
-	return results
 }
 
 // Append the specified path to this path and return the result as a new path

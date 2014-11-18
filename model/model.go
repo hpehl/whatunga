@@ -192,14 +192,6 @@ type Config struct {
 	DockerRemoteAPI string    `json:"docker-remote-api"`
 }
 
-func (c Config) String() string {
-	data, err := json.MarshalIndent(c, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("Error generating configuration: %s", err.Error())
-	}
-	return string(data)
-}
-
 type Templates struct {
 	Domain     string `json:"domain"`
 	HostMaster string `json:"host-master"`
@@ -214,14 +206,6 @@ type ServerGroup struct {
 	Deployments   []Deployment `json:"deployments"`
 }
 
-func (sg ServerGroup) String() string {
-	data, err := json.MarshalIndent(sg, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("Error generating server group: %s", err.Error())
-	}
-	return string(data)
-}
-
 type Deployment struct {
 	Name        string `json:"name"`
 	RuntimeName string `json:"runtime-name"`
@@ -233,14 +217,6 @@ type Host struct {
 	DC      bool     `json:"domain-controller"`
 	Servers []Server `json:"servers"`
 	Jvm     Jvm      `json:"jvm"`
-}
-
-func (h Host) String() string {
-	data, err := json.MarshalIndent(h, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("Error generating host: %s", err.Error())
-	}
-	return string(data)
 }
 
 type Server struct {

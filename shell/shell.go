@@ -42,12 +42,16 @@ func init() {
 
 func lateInit(project *model.Project) {
 	readline.Completer = func(query, ctx string) []string {
+		// the default which can be overridden by custom command completer functions
+		readline.CompletionAppendChar = ' '
+
 		var results []string
-		tokens := strings.Split(ctx, " ")
+		tokens := strings.Fields(ctx)
+		//		fmt.Printf("\ntokens: %v\n", tokens)
 		if len(tokens) > 0 {
 			cmd, valid := command.Registry[tokens[0]]
 			if valid {
-				// delegate to command specific completer func
+				// delegate to command completer function
 				return cmd.Completer(project, query, ctx)
 			} else {
 				for key, _ := range command.Registry {
@@ -55,6 +59,10 @@ func lateInit(project *model.Project) {
 						results = append(results, key)
 					}
 				}
+			}
+		} else {
+			for key, _ := range command.Registry {
+				results = append(results, key)
 			}
 		}
 		return results

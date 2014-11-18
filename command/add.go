@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
-	"github.com/bobappleyard/readline"
 )
 
 var addUsage = "add server-group|host|server|deployment|user <value,...> [--times=n]"
@@ -33,14 +32,14 @@ Non-unique names will lead to an error.`,
 	// tab completer
 	func(_ *model.Project, _, _ string) []string {
 		// TODO not yet implemented
-		readline.CompletionAppendChar = ' '
-		return nil
+		return []string{"not", "yet", "implemented"}
 	},
 	// action
 	func(_ *model.Project, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("Missing arguments. Usage: %s", addUsage)
 		}
+		fmt.Println("Not yet implemented!")
 		return nil
 	},
 }
