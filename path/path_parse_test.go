@@ -43,9 +43,9 @@ func (s *PathParseSuite) TestParseNumericIndex(c *C) {
 }
 
 func (s *PathParseSuite) TestParseAlphaNumericIndex(c *C) {
-	path, err := Parse("foo[bar]")
+	path, err := Parse("bar[f0o]")
 	assertPath(c, path, err, 1)
-	assertSegment(c, path[0], "foo", IndexSegment, Index{AlphaNumericIndex, "bar"}, s.emptyRange)
+	assertSegment(c, path[0], "bar", IndexSegment, Index{AlphaNumericIndex, "f0o"}, s.emptyRange)
 }
 
 func (s *PathParseSuite) TestParseSliceRangeFrom(c *C) {
@@ -90,4 +90,23 @@ func (s *PathParseSuite) TestParseMalformed(c *C) {
 	path, err := Parse("foo[bar.")
 	c.Assert(path, IsNil)
 	c.Assert(err, NotNil)
+}
+
+// ------------------------------------------------------ helper functions
+
+func assertPath(c *C, path Path, err error, length int) {
+	if err != nil {
+		c.Error(err)
+	}
+
+	c.Assert(path, NotNil)
+	c.Assert(err, IsNil)
+	c.Assert(len(path), Equals, length)
+}
+
+func assertSegment(c *C, segment Segment, name string, segmentKind SegmentKind, index Index, rng Range) {
+	c.Assert(segment.Name, Equals, name)
+	c.Assert(segment.Kind, Equals, segmentKind)
+	c.Assert(segment.Index, Equals, index)
+	c.Assert(segment.Range, Equals, rng)
 }

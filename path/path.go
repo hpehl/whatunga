@@ -49,7 +49,7 @@ type Range struct {
 
 // regular expression to distinguish between the different segments
 var plainSegment = regexp.MustCompile(`^([\w-]+)$`)
-var indexSegment = regexp.MustCompile(`^([\w-]+)\[((\d+)|([A-Za-z_-]+))\]$`)
+var indexSegment = regexp.MustCompile(`^([\w-]+)\[((\d+)|([A-Za-z0-9_-]+))\]$`)
 var rangeSegment = regexp.MustCompile(`^([\w-]+)\[((\d*)(:)(\d*))\]$`)
 
 // the current path which is used by the commands and the shell
@@ -139,7 +139,7 @@ func (path Path) Resolve(project *model.Project) (interface{}, error) {
 			}
 		}
 		if fieldName == "" {
-			return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" not found in project model.`, path, segment)
+			return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" not found.`, path, segment)
 		}
 
 		// Check the field type
@@ -163,7 +163,7 @@ func (path Path) Resolve(project *model.Project) (interface{}, error) {
 			switch segment.Kind {
 
 			case PlainSegment:
-				return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" does not refer to an object.`, path, segment)
+				return nil, fmt.Errorf(`Unable to resolve path "%s": Missig index given for collection "%s".`, path, segment)
 
 			case IndexSegment:
 				slice, err := reflections.GetField(context, fieldName)
@@ -174,7 +174,7 @@ func (path Path) Resolve(project *model.Project) (interface{}, error) {
 
 				if segment.Index.Kind == NumericIndex {
 					var index = segment.Index.Value.(int)
-					if index < sliceValue.Len() || index >= sliceValue.Len() {
+					if index < 0 || index >= sliceValue.Len() {
 						return nil, fmt.Errorf(`Unable to resolve path "%s": Index in segment "%s" is out of bounds.`, path, segment)
 					}
 					context = sliceValue.Index(index).Interface()

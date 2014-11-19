@@ -47,7 +47,6 @@ func lateInit(project *model.Project) {
 
 		var results []string
 		tokens := strings.Fields(ctx)
-		//		fmt.Printf("\ntokens: %v\n", tokens)
 		if len(tokens) > 0 {
 			cmd, valid := command.Registry[tokens[0]]
 			if valid {

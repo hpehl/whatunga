@@ -222,23 +222,21 @@ type Host struct {
 type Server struct {
 	Name        string `json:"name"`
 	ServerGroup string `json:"server-group"`
-	PortOffset  uint   `json:"port-offset"`
+	PortOffset  int    `json:"port-offset"`
 	AutoStart   bool   `json:"auto-start"`
 	Jvm         Jvm    `json:"jvm"`
 }
 
-type Memory string
-
 type BoundedMemory struct {
-	Initial Memory `json:"initial"`
-	Max     Memory `json:"max"`
+	Initial string `json:"initial"`
+	Max     string `json:"max"`
 }
 
 type Jvm struct {
 	Name    string        `json:"name"`
 	Heap    BoundedMemory `json:"heap"`
-	PermGem Memory        `json:"perm-gen"`
-	Stack   Memory        `json:"stack"`
+	PermGem string        `json:"perm-gen"`
+	Stack   string        `json:"stack"`
 	Options []string      `json:"options"`
 }
 

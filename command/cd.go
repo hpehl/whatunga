@@ -78,6 +78,8 @@ changes the current context to the fifth server of the third host.`,
 		if len(args) > 1 {
 			return fmt.Errorf("Too many arguments. Usage: %s", cdUsage)
 		}
+		// TODO not yet implemented
+		fmt.Println("Not yet implemented!")
 		return nil
 	},
 }

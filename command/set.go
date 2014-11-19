@@ -25,6 +25,7 @@ var set = Command{
 		if len(args) > 2 {
 			return fmt.Errorf("Too many arguments. Usage: %s", setUsage)
 		}
+		// TODO not yet implemented
 		fmt.Println("Not yet implemented!")
 		return nil
 	},

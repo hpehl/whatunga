@@ -7,13 +7,13 @@ import (
 
 // ------------------------------------------------------ setup
 
-type PathSuite struct{}
+type PathMiscSuite struct{}
 
-var _ = Suite(&PathSuite{})
+var _ = Suite(&PathMiscSuite{})
 
 // ------------------------------------------------------ misc tests
 
-func (s *PathSuite) TestString(c *C) {
+func (s *PathMiscSuite) TestString(c *C) {
 	in := "a[0].b[z].c[1:].d[:2].e[3:4].f[:].g"
 	path, _ := Parse(in)
 	out := fmt.Sprint(path)

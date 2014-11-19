@@ -34,6 +34,7 @@ var docker = Command{
 		if len(args) > 1 {
 			return fmt.Errorf("Too many arguments. Usage: %s", dockerUsage)
 		}
+		// TODO not yet implemented
 		switch args[0] {
 		case "create":
 			fmt.Printf("Docker create...\n")
