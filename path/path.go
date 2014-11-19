@@ -200,8 +200,16 @@ func (path Path) Resolve(project *model.Project) (interface{}, error) {
 			case RangeSegment:
 				return nil, fmt.Errorf(`Unable to resolve path "%s": Range in segment "%s" not supported.`, path, segment)
 			}
+
 		default:
-			return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" does not refer to an object or collection.`, path, segment)
+			if segment.Kind != PlainSegment {
+				return nil, fmt.Errorf(`Unable to resolve path "%s": Segment "%s" does refer to a collection.`, path, segment)
+			}
+			nested, err := reflections.GetField(context, fieldName)
+			if err != nil {
+				return nil, fmt.Errorf(`Unable to resolve path "%s": %s.`, path, err)
+			}
+			context = nested
 		}
 
 		if context == nil {
