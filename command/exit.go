@@ -1,13 +1,12 @@
 package command
 
 import (
+	"errors"
 	"fmt"
-	"github.com/bobappleyard/readline"
 	"github.com/hpehl/whatunga/model"
-	"github.com/mitchellh/go-homedir"
-	"os"
-	"path"
 )
+
+var EXIT = errors.New("exit")
 
 var exit = Command{
 	"exit",
@@ -20,12 +19,7 @@ var exit = Command{
 	},
 	// action
 	func(_ *model.Project, _ []string) error {
-		home, err := homedir.Dir()
-		if err == nil {
-			readline.SaveHistory(path.Join(home, ".whatunga_history"))
-		}
 		fmt.Println("Haere rā\n")
-		os.Exit(0)
-		return nil
+		return EXIT
 	},
 }

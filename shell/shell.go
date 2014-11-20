@@ -2,7 +2,6 @@ package shell
 
 import (
 	"fmt"
-	"github.com/bobappleyard/readline"
 	"github.com/hpehl/whatunga/command"
 	"github.com/hpehl/whatunga/model"
 	wpath "github.com/hpehl/whatunga/path"
@@ -36,14 +35,14 @@ var AppVersionRev string
 func init() {
 	home, err := homedir.Dir()
 	if err == nil {
-		readline.LoadHistory(path.Join(home, ".whatunga_history"))
+		LoadHistory(path.Join(home, ".whatunga_history"))
 	}
 }
 
 func lateInit(project *model.Project) {
-	readline.Completer = func(query, ctx string) []string {
+	Completer = func(query, ctx string) []string {
 		// the default which can be overridden by custom command completer functions
-		readline.CompletionAppendChar = ' '
+		CompletionAppendChar = ' '
 
 		var results []string
 		tokens := strings.Fields(ctx)
@@ -73,30 +72,38 @@ func Start(info string, project *model.Project) {
 	fmt.Printf("%s\n%s\n%s\n", Logo, version(), info)
 
 	for {
-		cmdline, err := readline.String(prompt(project))
+		cmdline, err := String(prompt(project))
 		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error reading command:", err)
+			break // Ctrl-C
+		} else if err != nil {
+			fmt.Fprintln(os.Stderr, "Error reading command: ", err)
 			break
 		}
 		if cmdline == "" {
 			continue
 		}
-		readline.AddHistory(cmdline)
+
+		AddHistory(cmdline)
 		fmt.Println() // general new line before each cmd execution for better formatting
 
 		tokens := strings.Fields(cmdline)
 		cmd, valid := command.Registry[tokens[0]]
 		if !valid {
 			fmt.Printf("Unknown command: \"%s\"\n", tokens[0])
-			prompt(project)
 			continue
 		}
-		if err := cmd.Action(project, tokens[1:]); err != nil {
+		err = cmd.Action(project, tokens[1:])
+		if err == command.EXIT {
+			AddHistory(cmdline)
+			break
+		} else if err != nil {
 			fmt.Printf("%s\n", err.Error())
 		}
+	}
+
+	home, err := homedir.Dir()
+	if err == nil {
+		SaveHistory(path.Join(home, ".whatunga_history"))
 	}
 }
 

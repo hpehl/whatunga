@@ -44,25 +44,30 @@ func main() {
 	directory := flag.Arg(0)
 	fileInfo, err := os.Stat(directory)
 
+	var welcome string
+	var project *model.Project
 	if os.IsNotExist(err) {
-		project, err := model.NewProject(directory, nameFlag, versionFlag, targetFlag)
+		p, err := model.NewProject(directory, nameFlag, versionFlag, targetFlag)
 		if err != nil {
 			wrongUsage(err.Error())
 		}
-		shell.Start(fmt.Sprintf(`Start with new project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
+		project = p
+		welcome = fmt.Sprintf(`Start with new project "%s" in "%s"`, project.Name, path.Join(wd, directory))
 
 	} else if fileInfo.Mode().IsDir() {
-		project, err := model.OpenProject(directory)
+		p, err := model.OpenProject(directory)
 		if err != nil {
 			wrongUsage(err.Error())
 		}
-		shell.Start(fmt.Sprintf(`Open existing project "%s" in "%s"`, project.Name, path.Join(wd, directory)), project)
+		project = p
+		welcome = fmt.Sprintf(`Open existing project "%s" in "%s"`, project.Name, path.Join(wd, directory))
 
 	} else {
 		wrongUsage(fmt.Sprintf("\"%s\" is not a directory!", directory))
 	}
 
 	// TODO Setup file watchers for WhatungaJson and the templates
+	shell.Start(welcome, project)
 }
 
 func wrongUsage(why string) {
