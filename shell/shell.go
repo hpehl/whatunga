@@ -33,46 +33,58 @@ const (
 var AppVersionRev string
 
 func init() {
+	SetWordBreaks(" \t.[:]=")
 	home, err := homedir.Dir()
 	if err == nil {
 		LoadHistory(path.Join(home, ".whatunga_history"))
 	}
 }
 
-func lateInit(project *model.Project) {
+func registerCompleter(project *model.Project) {
 	Completer = func(query, ctx string) []string {
+		//		log.Printf("completer: context: \"%s\", query: \"%s\"\n", ctx, query)
+
 		// the default which can be overridden by custom command completer functions
 		CompletionAppendChar = ' '
 
-		var results []string
+		// The input is exactly one of the commands. In that case we want to add the
+		// CompletionAppendChar and go on
+		if ctx == query {
+			_, exists := command.Registry[query]
+			if exists {
+				return []string{query}
+			}
+		}
+
+		var matches []string
 		tokens := strings.Fields(ctx)
 		if len(tokens) > 0 {
 			cmd, valid := command.Registry[tokens[0]]
 			if valid {
 				// delegate to command completer function
-				return cmd.Completer(project, query, ctx)
+				matches = cmd.Completer(project, query, ctx)
 			} else {
 				for key, _ := range command.Registry {
 					if strings.HasPrefix(key, query) {
-						results = append(results, key)
+						matches = append(matches, key)
 					}
 				}
 			}
 		} else {
 			for key, _ := range command.Registry {
-				results = append(results, key)
+				matches = append(matches, key)
 			}
 		}
-		return results
+		return matches
 	}
 }
 
 func Start(info string, project *model.Project) {
-	lateInit(project)
+	registerCompleter(project)
 	fmt.Printf("%s\n%s\n%s\n", Logo, version(), info)
 
 	for {
-		cmdline, err := String(prompt(project))
+		cmdline, err := Readline(prompt(project))
 		if err == io.EOF {
 			break // Ctrl-C
 		} else if err != nil {

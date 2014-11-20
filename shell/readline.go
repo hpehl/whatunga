@@ -64,7 +64,7 @@ var entries []*C.char
 
 // Read a line with the given prompt. The prompt can contain ANSI
 // escape sequences, they will be escaped as necessary.
-func String(prompt string) (string, error) {
+func Readline(prompt string) (string, error) {
 	p := C.CString(prompt)
 	rp := C.readline(p)
 	s := C.GoString(rp)
@@ -99,7 +99,6 @@ func FilenameCompleter(query, ctx string) []string {
 
 //export _completion_fn
 func _completion_fn(p *C.char, _i C.int) *C.char {
-	C.rl_completion_append_character = C.int(CompletionAppendChar)
 	i := int(_i)
 	if i == 0 {
 		es := Completer(C.GoString(p), C.GoString(C.rl_line_buffer))
@@ -108,6 +107,7 @@ func _completion_fn(p *C.char, _i C.int) *C.char {
 			entries[i] = C.CString(x)
 		}
 	}
+	C.rl_completion_append_character = C.int(CompletionAppendChar)
 	if i >= len(entries) {
 		return nil
 	}

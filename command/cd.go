@@ -32,7 +32,7 @@ changes the current context to the fifth server of the third host.`,
 			readline.CompletionAppendChar = 0
 		}
 
-		var results []string
+		var matches []string
 		var completePath path.Path
 		var reminder string
 
@@ -59,16 +59,12 @@ changes the current context to the fifth server of the third host.`,
 				kind, _ := reflections.GetFieldKind(context, field)
 				if kind == reflect.Struct || kind == reflect.Slice {
 					if strings.HasPrefix(tag, reminder) {
-						if completePath.IsEmpty() {
-							results = append(results, tag)
-						} else {
-							results = append(results, fmt.Sprintf("%s.%s", completePath, tag))
-						}
+						matches = append(matches, tag)
 					}
 				}
 			}
 		}
-		return results
+		return matches
 	},
 	// action
 	func(_ *model.Project, args []string) error {
