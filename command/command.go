@@ -42,7 +42,7 @@ type Command struct {
 	// A more detailed description for this command
 	UsageDescription string
 	// The function to call when checking for tab completion
-	Completer func(project *model.Project, query, ctx string) []string
+	Completer func(project *model.Project, query, cmdline string) ([]string, int)
 	// The function to call when this command is invoked
 	Action func(project *model.Project, args []string) error
 }

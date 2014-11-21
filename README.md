@@ -229,28 +229,20 @@ Whatunga provides a list of commands to show current settings, change the projec
 
 ## Path
 
-Specifies an object or attribute in the project model. Could be a specific attribute like `host-master.server1.port-offset` or an object like `main-server-group`. For bulk operations the path can include wildcards. 
+For some commands you need to provide a path. A path specifies an object or attribute in the project model. This could be a specific attribute like `hosts[host-master].servers[0].port-offset` or an object like `server-groups[main-server-group]`. For bulk operations the path can include a range (which follows the [rules for slices](http://tour.golang.org/#33) in the Go language).
 
 To set the auto start flag of all servers in the group `staging-group` use the following command:
 
-    set staging-group.*.auto-start true
+    set server-groups[staging-group].servers[:].auto-start true
     
-If the object is part of a collection you can also use an index (zero based) or a range (from..to) together with the objects type. To avoid naming conflicts you have to prefix the relevant path segment with `'` in that case: 
-
-	# Set the auto start flag of the fifth server of the third host
-	set 'hosts[2].servers[4].auto-start true
-	
-	// set the profiles of server groups 3, 4 and 5 to "full-ha"
-	set 'server-groups[2..4].profile full-ha
-
 ## Value
 
-Can be simple values like `100`, `true` or `"128MB"` or full JSON encoded objects like `{"name":"s2jvm","heap":{"initial":"1GB","max":"2GB"},"options":["-server"]}`. 
+Values can be simple values like `100`, `true` or `"128MB"` or full JSON encoded objects like `{"name":"s2jvm","heap":{"initial":"1GB","max":"2GB"},"options":["-server"]}`.
 
-If the path addresses multiple objects you can provide multiple values:
+If the path specified multiple objects you can provide multiple values:
 
 	# Set the auto start flag of the servers of host master to the given values
-	set master.*.auto-start true,false,false,true
+	set hosts[master].servers[:].auto-start true,false,false,true
 
 ## Naming
 
@@ -273,38 +265,43 @@ The following sample shows a list of commands to setup a domain with three serve
 # As no socket binding is specified, the first socket binding defined 
 # in the domain template is used. 
 add server-group group%c --times=3
-set group*.profile dev,staging,prod
+set server-groups[:].profile dev,staging,prod
     
 # Assign a deployment to the dev server group
-cd group0
-!cp /tmp/ticketmonster.ear deployments
+cd server-groups[0]
 add deployment deployments/ticketmonster.ear
-set 'deployment[0].runtime-name ticketmonster
+set deployments[0].runtime-name ticketmonster
 cd ..
 
 # Add a single host named "master" using default values. After that the
 # domain controller flag is set to true. Finally add three more hosts.
 add host master
-set master.domain-controller true
+set hosts[master].domain-controller true
 add host slave0,slave1,slave2
 
 # For each slave add servers. By default the port offset is incremented
 # by 50,  the server group is assigned to the first defined server group 
 # and auto start is disabled 
-cd slave0; add server server%c --times=3; cd ..
-cd slave1; add server server%3c --times=3; cd ..
-cd slave2; add server server6,lastserver; cd ..
+cd slave0
+add server server%c --times=3
+cd ..
+cd slave1
+add server server%3c --times=3
+cd ..
+cd slave2
+add server server6,lastserver
+cd ..
 
 # Change defaults
-set slave0.server0.auto-start true
+set hosts[slave0].servers[server0].auto-start true
 
-set slave1.server*.server-group staging,staging,qa
-set slave1.server*.auto-start false,true,true
+set hosts[slave1].servers[0:3].server-group staging,staging,qa
+set hosts[slave1].servers[0:3].auto-start false,true,true
 
-set slave2.*.server-group qa,qa,prod
-set slave2.*.port-offset 0+20
+set hosts[slave2].servers[:].server-group qa,qa,prod
+set hosts[slave2].servers[:].port-offset 0+20
 
-cd 'hosts[2].'servers[2]
+cd hosts[2].servers[2]
 set jvm {"name":"s2jvm","heap":{"initial":"1GB","max":"2GB"},"options":["-server"]}
 cd ..
 ```

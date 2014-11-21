@@ -20,7 +20,7 @@ var show = Command{
     - source: Prints the complete project model.
     - docker: Provides information about the Docker status and version.`,
 	// tab completer
-	func(_ *model.Project, query, _ string) []string {
+	func(_ *model.Project, query, _ string) ([]string, int) {
 		var results []string
 		subCommands := [...]string{"config", "source", "docker"}
 		for _, subCommand := range subCommands {
@@ -28,7 +28,7 @@ var show = Command{
 				results = append(results, subCommand)
 			}
 		}
-		return results
+		return results, ' '
 	},
 	// action
 	func(project *model.Project, args []string) error {

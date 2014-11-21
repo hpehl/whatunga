@@ -42,8 +42,6 @@ func init() {
 
 func registerCompleter(project *model.Project) {
 	Completer = func(query, ctx string) []string {
-		//		log.Printf("completer: context: \"%s\", query: \"%s\"\n", ctx, query)
-
 		// the default which can be overridden by custom command completer functions
 		CompletionAppendChar = ' '
 
@@ -62,7 +60,7 @@ func registerCompleter(project *model.Project) {
 			cmd, valid := command.Registry[tokens[0]]
 			if valid {
 				// delegate to command completer function
-				matches = cmd.Completer(project, query, ctx)
+				matches, CompletionAppendChar = cmd.Completer(project, query, ctx)
 			} else {
 				for key, _ := range command.Registry {
 					if strings.HasPrefix(key, query) {

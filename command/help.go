@@ -15,14 +15,14 @@ var help = Command{
 	helpUsage,
 	"Displays this help message or prints detailed help on requested commands.",
 	// tab completer
-	func(_ *model.Project, query, _ string) []string {
+	func(_ *model.Project, query, _ string) ([]string, int) {
 		var results []string
 		for key, _ := range Registry {
 			if strings.HasPrefix(key, query) {
 				results = append(results, key)
 			}
 		}
-		return results
+		return results, ' '
 	},
 	// action
 	func(_ *model.Project, args []string) error {
