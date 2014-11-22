@@ -126,5 +126,9 @@ func version() string {
 }
 
 func prompt(project *model.Project) string {
-	return fmt.Sprintf("\n[%s:%s @ /%s]> ", project.Name, project.Version, wpath.CurrentPath)
+	if wpath.CurrentPath.IsEmpty() {
+		return fmt.Sprintf("\n[\x1b[0;35m%s\x1b[0;0m:\x1b[0;35m%s\x1b[0;0m] $ ", project.Name, project.Version)
+	} else {
+		return fmt.Sprintf("\n[\x1b[0;35m%s\x1b[0;0m:\x1b[0;35m%s\x1b[0;0m] \x1b[0;33m%s\x1b[0;0m $ ", project.Name, project.Version, wpath.CurrentPath)
+	}
 }

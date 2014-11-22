@@ -27,8 +27,14 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"regexp"
 	"syscall"
 	"unsafe"
+)
+
+const (
+	promptStartIgnore = string(C.RL_PROMPT_START_IGNORE)
+	promptEndIgnore   = string(C.RL_PROMPT_END_IGNORE)
 )
 
 // The prompt used by Reader(). The prompt can contain ANSI escape
@@ -62,9 +68,18 @@ var Completer = func(query, ctx string) []string {
 
 var entries []*C.char
 
+var shortEscRegex = "\x1b[@-Z\\-_]"
+var csiPrefix = "(\x1b[[]|\xC2\x9b)"
+var csiParam = "([0-9]+|\"[^\"]*\")"
+var csiSuffix = "[@-~]"
+var csiRegex = csiPrefix + "(" + csiParam + "(;" + csiParam + ")*)?" + csiSuffix
+var escapeSeq = regexp.MustCompile(shortEscRegex + "|" + csiRegex)
+
 // Read a line with the given prompt. The prompt can contain ANSI
 // escape sequences, they will be escaped as necessary.
 func Readline(prompt string) (string, error) {
+	prompt = "\x1b[0m" + prompt // Prepend a 'reset' ANSI escape sequence
+	prompt = escapeSeq.ReplaceAllString(prompt, promptStartIgnore+"$0"+promptEndIgnore)
 	p := C.CString(prompt)
 	rp := C.readline(p)
 	s := C.GoString(rp)
