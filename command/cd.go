@@ -76,7 +76,7 @@ changes the current context to the fifth server of host "master".`,
 			if err != nil {
 				return err
 			}
-			if _, err := newPath.Resolve(project); err != nil {
+			if _, err := path.CurrentPath.Append(newPath).Resolve(project); err != nil {
 				return err
 			}
 			path.CurrentPath = newPath
