@@ -90,18 +90,12 @@ func matchesFor(context path.Path, reminder string, project *model.Project) ([]s
 	children := ls(context, project)
 
 	if contains(keys(children), reminder) {
-		// yep. check the type to find the right CompletionAppendChar and return that match
 		if children[reminder] == reflect.Struct {
-			if hasNestedStructs(context, reminder, project) {
-				return []string{reminder}, '.'
-			} else {
-				return []string{reminder}, ' '
-			}
+			return []string{reminder}, 0
 		} else {
 			return []string{reminder}, '['
 		}
 	} else {
-		// no. return a slice of matches based on the reminder
 		var matches []string
 		for _, name := range keys(children) {
 			if strings.HasPrefix(name, reminder) {
@@ -110,11 +104,7 @@ func matchesFor(context path.Path, reminder string, project *model.Project) ([]s
 		}
 		if len(matches) == 1 {
 			if children[matches[0]] == reflect.Struct {
-				if hasNestedStructs(context, matches[0], project) {
-					return matches, '.'
-				} else {
-					return matches, ' '
-				}
+				return matches, 0
 			} else {
 				return matches, '['
 			}
@@ -140,15 +130,6 @@ func ls(context path.Path, project *model.Project) map[string]reflect.Kind {
 		}
 	}
 	return matches
-}
-
-func hasNestedStructs(context path.Path, name string, project *model.Project) bool {
-	nested, err := path.Parse(name)
-	if err == nil {
-		children := ls(context.Append(nested), project)
-		return len(children) > 0
-	}
-	return false
 }
 
 func keys(m map[string]reflect.Kind) []string {
