@@ -81,9 +81,6 @@ type Project struct {
 	ServerGroups []ServerGroup `json:"server-groups"`
 	Hosts        []Host        `json:"hosts"`
 	Users        []User        `json:"users"`
-	Foo1         Foo           `json:"foo1"`
-	Foo2         Foo           `json:"foo2"`
-	Foo3         Foo           `json:"foo3"`
 }
 
 func NewProject(directory string, name string, version string, target Target) (*Project, error) {
@@ -131,9 +128,6 @@ func NewProject(directory string, name string, version string, target Target) (*
 		ServerGroups: []ServerGroup{},
 		Hosts:        []Host{},
 		Users:        []User{},
-		Foo1:         Foo{Bar{"foo1"}},
-		Foo2:         Foo{Bar{"foo2"}},
-		Foo3:         Foo{Bar{"foo3"}},
 	}
 	if err := project.Save(); err != nil {
 		return nil, err
