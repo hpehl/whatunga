@@ -220,12 +220,12 @@ func (path Path) Resolve(project *model.Project) (interface{}, error) {
 }
 
 // Append the specified path to this path and return the result as a new path
-func (self Path) Append(path Path) Path {
-	var result Path
-	if len(self) > 0 {
-		copy(result, self)
+func (path Path) Append(addition Path) Path {
+	var result = make(Path, len(path))
+	if len(path) > 0 {
+		copy(result, path)
 	}
-	for _, segment := range path {
+	for _, segment := range addition {
 		result = append(result, segment)
 	}
 	return result

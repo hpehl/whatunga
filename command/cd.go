@@ -72,14 +72,15 @@ changes the current context to the fifth server of host "master".`,
 			}
 			path.CurrentPath = path.CurrentPath[:0]
 		} else {
-			newPath, err := path.Parse(args[0])
+			changeTo, err := path.Parse(args[0])
 			if err != nil {
 				return err
 			}
-			if _, err := path.CurrentPath.Append(newPath).Resolve(project); err != nil {
+			full := path.CurrentPath.Append(changeTo)
+			if _, err := full.Resolve(project); err != nil {
 				return err
 			}
-			path.CurrentPath = newPath
+			path.CurrentPath = full
 		}
 		return nil
 	},
