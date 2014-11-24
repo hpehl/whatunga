@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hpehl/whatunga/template"
+	"github.com/jmcvetta/randutil"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
 	"strings"
@@ -129,10 +131,47 @@ func NewProject(directory string, name string, version string, target Target) (*
 		Hosts:        []Host{},
 		Users:        []User{},
 	}
+
+	// add some data to test the commands
+	addTestData(project)
+
 	if err := project.Save(); err != nil {
 		return nil, err
 	}
 	return project, nil
+}
+
+func addTestData(project *Project) {
+	var serverGroups = 5 + rand.Intn(5)
+	project.ServerGroups = make([]ServerGroup, serverGroups)
+	for i := 0; i < serverGroups; i++ {
+		project.ServerGroups[i] = ServerGroup{
+			Name:          value(randutil.AlphaString(10)),
+			Profile:       value(randutil.AlphaString(10)),
+			SocketBinding: value(randutil.AlphaString(10)),
+		}
+	}
+
+	var hosts = 5 + rand.Intn(5)
+	project.Hosts = make([]Host, hosts)
+	for i := 0; i < hosts; i++ {
+		project.Hosts[i] = Host{
+			Name: value(randutil.AlphaString(10)),
+		}
+
+		servers := 1 + rand.Intn(4)
+		project.Hosts[i].Servers = make([]Server, servers)
+		for j := 0; j < servers; j++ {
+			project.Hosts[i].Servers[j] = Server{
+				Name:        value(randutil.AlphaString(10)),
+				ServerGroup: value(randutil.AlphaString(10)),
+			}
+		}
+	}
+}
+
+func value(v string, _ error) string {
+	return v
 }
 
 func createTemplate(target Target, name string) error {
@@ -209,7 +248,7 @@ type ServerGroup struct {
 	Name          string       `json:"name"`
 	Profile       string       `json:"profile"`
 	SocketBinding string       `json:"socket-binding"`
-	Jvm           Jvm          `json:"jvm"`
+	Jvm           *Jvm         `json:"jvm"`
 	Deployments   []Deployment `json:"deployments"`
 }
 
@@ -223,7 +262,7 @@ type Host struct {
 	Name    string   `json:"name"`
 	DC      bool     `json:"domain-controller"`
 	Servers []Server `json:"servers"`
-	Jvm     Jvm      `json:"jvm"`
+	Jvm     *Jvm     `json:"jvm"`
 }
 
 type Server struct {
@@ -231,7 +270,7 @@ type Server struct {
 	ServerGroup string `json:"server-group"`
 	PortOffset  int    `json:"port-offset"`
 	AutoStart   bool   `json:"auto-start"`
-	Jvm         Jvm    `json:"jvm"`
+	Jvm         *Jvm   `json:"jvm"`
 }
 
 type BoundedMemory struct {

@@ -1,11 +1,13 @@
 package command
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/hpehl/whatunga/model"
 	"github.com/hpehl/whatunga/path"
 	"github.com/oleiade/reflections"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -28,26 +30,44 @@ changes the current context to the fifth server of host "master".`,
 	func(project *model.Project, query, cmdline string) ([]string, int) {
 		tokens := strings.Fields(cmdline)
 
+		var buffer bytes.Buffer
+		for i, t := range tokens {
+			buffer.WriteString(strconv.Quote(t))
+			if i < len(tokens)-1 {
+				buffer.WriteString(", ")
+			}
+		}
+
+		//		log.Printf(`
+		//-+-+-+-+-
+		//cmdline:     "%s"
+		//query:       "%s"
+		//# of tokens: %d
+		//tokens:      [%s]
+		//-+-+-+-+-
+		//`, cmdline, query, len(tokens), buffer.String())
+
 		if len(tokens) == 1 && query == "" {
 			// just the command was given, return matches based on the current path
 			return keys(ls(path.CurrentPath, project)), 0
 
 		} else if len(tokens) > 1 {
 			// check the stuff after "cd"
-			pathPart, reminder := split(tokens[1])
+			possiblePath, segment := path.SplitLastSegment(tokens[1])
 
-			if pathPart == "" {
-				// no full path. return matches based on the reminder
-				return matchesFor(path.CurrentPath, reminder, project)
+			if possiblePath == "" {
+				// no full path. return matches based on the segment
+				return matchesFor(path.CurrentPath, segment, project)
 
 			} else {
 				// some kind of path given. append to path.CurrentPath
-				p, err := path.Parse(pathPart)
+				// and return matches for the full path
+				pth, err := path.Parse(possiblePath)
 				if err != nil {
 					return nil, 0
 				}
-				fullPath := path.CurrentPath.Append(p)
-				return matchesFor(fullPath, reminder, project)
+				fullPath := path.CurrentPath.Append(pth)
+				return matchesFor(fullPath, segment, project)
 			}
 		}
 		return nil, 0
@@ -86,30 +106,66 @@ changes the current context to the fifth server of host "master".`,
 	},
 }
 
-func matchesFor(context path.Path, reminder string, project *model.Project) ([]string, int) {
+func matchesFor(context path.Path, segment string, project *model.Project) ([]string, int) {
 	children := ls(context, project)
+	keys := keys(children)
 
-	if contains(keys(children), reminder) {
-		if children[reminder] == reflect.Struct {
-			return []string{reminder}, 0
+	if contains(keys, segment) {
+		if children[segment] == reflect.Struct {
+			return []string{segment}, 0
 		} else {
-			return []string{reminder}, '['
+			return []string{segment}, '['
 		}
 	} else {
 		var matches []string
-		for _, name := range keys(children) {
-			if strings.HasPrefix(name, reminder) {
-				matches = append(matches, name)
-			}
-		}
-		if len(matches) == 1 {
-			if children[matches[0]] == reflect.Struct {
-				return matches, 0
+		openBracket, beforeIndex, index := path.LastOpenSquareBracket(segment)
+
+		//		log.Printf(`
+		//-+-+-+-+-
+		//openBracket: %v
+		//beforeIndex: "%s"
+		//index:       "%s"
+		//-+-+-+-+-
+		//`, openBracket, beforeIndex, index)
+
+		if openBracket {
+			// it's an unclosed index
+			if index == "" {
+				// return both numeric and alphanumeric matches
+				matches = append(matches, indices(context, beforeIndex, index, project)...)
+				matches = append(matches, names(context, beforeIndex, index, project)...)
 			} else {
-				return matches, '['
+				_, err := strconv.ParseUint(index, 10, 32)
+				if err == nil {
+					// unclosed numeric index
+					matches = append(matches, indices(context, beforeIndex, index, project)...)
+				} else {
+					// unclosed alphanumeric index
+					matches = append(matches, names(context, beforeIndex, index, project)...)
+				}
 			}
+			if len(matches) == 1 {
+				return matches, ']'
+			} else {
+				return matches, 0
+			}
+
 		} else {
-			return matches, 0
+			// it's a normal segment
+			for _, key := range keys {
+				if strings.HasPrefix(key, segment) {
+					matches = append(matches, key)
+				}
+			}
+			if len(matches) == 1 {
+				if children[matches[0]] == reflect.Struct {
+					return matches, 0
+				} else {
+					return matches, '['
+				}
+			} else {
+				return matches, 0
+			}
 		}
 	}
 }
@@ -132,25 +188,76 @@ func ls(context path.Path, project *model.Project) map[string]reflect.Kind {
 	return matches
 }
 
+func indices(context path.Path, name string, index string, project *model.Project) []string {
+	slice := getSlice(context, name, project)
+	if !slice.IsValid() {
+		return nil
+	}
+	matches := make([]string, slice.Len())
+	for i, _ := range matches {
+		strIndex := fmt.Sprintf("%d", i)
+		if strings.HasPrefix(strIndex, index) {
+			matches[i] = strIndex
+		}
+	}
+	return matches
+}
+
+func names(context path.Path, name string, index string, project *model.Project) []string {
+	slice := getSlice(context, name, project)
+	if !slice.IsValid() {
+		return nil
+	}
+
+	var matches []string
+	for i := 0; i < slice.Len(); i++ {
+		element := slice.Index(i)
+		value, err := reflections.GetField(element.Interface(), "Name")
+		if err == nil {
+			strValue := value.(string)
+			if strings.HasPrefix(strValue, index) {
+				matches = append(matches, strValue)
+			}
+		}
+	}
+	return matches
+}
+
+func getSlice(context path.Path, name string, project *model.Project) reflect.Value {
+	var slice reflect.Value
+	var realName string // name is the json name!
+
+	obj, err := context.Resolve(project)
+	if err == nil {
+		tags, err := reflections.Tags(obj, "json")
+		if err == nil {
+			for field, tag := range tags {
+				if tag == name {
+					realName = field
+					break
+				}
+			}
+		}
+
+		if reflect.TypeOf(obj).Kind() == reflect.Ptr {
+			slice = reflect.ValueOf(obj).Elem()
+		} else {
+			slice = reflect.ValueOf(obj)
+		}
+		check := slice.FieldByName(realName)
+		if check.IsValid() && reflect.TypeOf(check).Kind() != reflect.Slice {
+			slice = check
+		}
+	}
+	return slice
+}
+
 func keys(m map[string]reflect.Kind) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
 	}
 	return keys
-}
-
-func split(arg string) (string, string) {
-	var path, reminder string
-	lastDot := strings.LastIndex(arg, ".")
-	if lastDot != -1 {
-		path = arg[0:lastDot]
-		reminder = arg[lastDot+1:]
-	} else {
-		path = ""
-		reminder = arg
-	}
-	return path, reminder
 }
 
 func contains(s []string, e string) bool {

@@ -9,12 +9,12 @@ import (
 // ------------------------------------------------------ setup
 
 type PathResolveSuite struct {
-	jvm     model.Jvm
+	jvm     *model.Jvm
 	project *model.Project
 }
 
 func (s *PathResolveSuite) SetUpSuite(_ *C) {
-	s.jvm = model.Jvm{
+	s.jvm = &model.Jvm{
 		Name: "server-group0-jvm",
 		Heap: model.BoundedMemory{
 			Initial: "1GB",
@@ -77,7 +77,7 @@ func (s *PathResolveSuite) SetUpSuite(_ *C) {
 						Name:        "host0-server2",
 						ServerGroup: "server-group0",
 						PortOffset:  100,
-						Jvm: model.Jvm{
+						Jvm: &model.Jvm{
 							Name: "host0-server2-jvm",
 							Heap: model.BoundedMemory{
 								Initial: "3GB",
@@ -106,7 +106,7 @@ func (s *PathResolveSuite) SetUpSuite(_ *C) {
 						PortOffset:  100,
 					},
 				},
-				Jvm: model.Jvm{
+				Jvm: &model.Jvm{
 					Name: "host1-jvm",
 					Heap: model.BoundedMemory{
 						Initial: "5GB",

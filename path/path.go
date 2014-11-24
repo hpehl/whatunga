@@ -55,6 +55,8 @@ var rangeSegment = regexp.MustCompile(`^([\w-]+)\[((\d*)(:)(\d*))\]$`)
 // the current path which is used by the commands and the shell
 var CurrentPath Path = []Segment{}
 
+// ------------------------------------------------------ path functions
+
 // Turns a string into a path
 func Parse(p string) (Path, error) {
 	if p == "" {
@@ -118,6 +120,42 @@ func Parse(p string) (Path, error) {
 	}
 	return path, nil
 }
+
+func SplitLastSegment(arg string) (string, string) {
+	var path, segment string
+	lastDot := strings.LastIndex(arg, ".")
+	if lastDot != -1 {
+		path = arg[0:lastDot]
+		segment = arg[lastDot+1:]
+	} else {
+		path = ""
+		segment = arg
+	}
+	return path, segment
+}
+
+func LastOpenSquareBracket(segment string) (bool, string, string) {
+	var counter, pos int
+	for index, c := range segment {
+		if c == '[' {
+			counter++
+			pos = index
+		} else if c == ']' {
+			counter--
+		}
+	}
+	if counter > 0 {
+		if pos < len(segment) {
+			return true, segment[0:pos], segment[pos+1:]
+		} else {
+			return true, "", ""
+		}
+	} else {
+		return false, "", ""
+	}
+}
+
+// ------------------------------------------------------ path methods
 
 // Get the value of the project model the given path points to. The path must be unambiguous,
 // thus it must not contain ranges.
@@ -249,6 +287,8 @@ func (path Path) String() string {
 	}
 	return buffer.String()
 }
+
+// ------------------------------------------------------ segment methods
 
 func (segment Segment) String() string {
 	var buffer bytes.Buffer
