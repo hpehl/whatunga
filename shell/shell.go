@@ -16,7 +16,7 @@ import (
 const (
 	AppName         = "whatunga"
 	AppVersionMajor = 0
-	AppVersionMinor = 4
+	AppVersionMinor = 5
 	AppVersionMicro = 0
 	Logo            = `
  __      __.__            __
