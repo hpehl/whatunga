@@ -204,14 +204,9 @@ Whatunga provides a list of commands to show current settings, change the projec
 
 - `help [command]` Shows the list of available commands or context sensitive help
 
-- `show section` Shows status information. Use one of the following sub commands to get specific information:
-    - `config` Shows the current configuration
-    - `server-groups` Lists all server groups
-    - `hosts` Lists all hosts
-    - `source` Prints the complete project model
-    - `docker` Provides information about the Docker status and version
-    
 - `cd path` Changes the current context to the specified path.
+
+- `ls [path]` Lists the model of the current context or specified path.
 
 - `add server-group|host|server|deployment|user value,... [--times=n]` Adds one or several objects to the project model.
 
