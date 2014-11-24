@@ -17,6 +17,7 @@ const (
 	AppName         = "whatunga"
 	AppVersionMajor = 0
 	AppVersionMinor = 4
+	AppVersionMicro = 0
 	Logo            = `
  __      __.__            __
 /  \    /  \  |__ _____ _/  |_ __ __  ____    _________
@@ -118,11 +119,8 @@ func Start(info string, project *model.Project) {
 }
 
 func version() string {
-	if len(AppVersionRev) == 0 {
-		AppVersionRev = "0"
-	}
-	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).",
-		AppName, AppVersionMajor, AppVersionMinor, AppVersionRev, runtime.Version())
+	return fmt.Sprintf("%s %d.%d.%d (Go runtime %s).",
+		AppName, AppVersionMajor, AppVersionMinor, AppVersionMicro, runtime.Version())
 }
 
 func prompt(project *model.Project) string {
