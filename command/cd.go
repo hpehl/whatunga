@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
 	"github.com/hpehl/whatunga/path"
+	"reflect"
 )
 
 var cdUsage = "cd <path> | cd .. | cd /"
@@ -22,7 +23,9 @@ type. Both numeric and name based indizes are supported:
 
 changes the current context to the fifth server of host "master".`,
 	// tab completer
-	completion,
+	func(project *model.Project, query, cmdline string) ([]string, int) {
+		return completion(project, query, cmdline, []reflect.Kind{reflect.Struct, reflect.Slice})
+	},
 	// action
 	func(project *model.Project, args []string) error {
 		if len(args) == 0 {

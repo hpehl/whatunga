@@ -58,12 +58,11 @@ type Command struct {
 
 // ------------------------------------------------------ functions used by several commands
 
-// TODO add parameter []reflect.Kind to select which kind of objects / attributes to return
-func completion(project *model.Project, query, cmdline string) ([]string, int) {
+func completion(project *model.Project, query, cmdline string, kinds []reflect.Kind) ([]string, int) {
 	tokens := strings.Fields(cmdline)
 	if len(tokens) == 1 && query == "" {
 		// just the command was given, return matches based on the current path
-		return keys(children(project, path.CurrentPath)), 0
+		return keys(children(project, path.CurrentPath, kinds)), 0
 
 	} else if len(tokens) > 1 {
 		// check the stuff after "ls"
@@ -71,7 +70,7 @@ func completion(project *model.Project, query, cmdline string) ([]string, int) {
 
 		if possiblePath == "" {
 			// no full path. return matches based on the segment
-			return matchesFor(project, path.CurrentPath, segment)
+			return matchesFor(project, path.CurrentPath, segment, kinds)
 
 		} else {
 			// some kind of path given. append to path.CurrentPath
@@ -81,21 +80,21 @@ func completion(project *model.Project, query, cmdline string) ([]string, int) {
 				return nil, 0
 			}
 			fullPath := path.CurrentPath.Append(pth)
-			return matchesFor(project, fullPath, segment)
+			return matchesFor(project, fullPath, segment, kinds)
 		}
 	}
 	return nil, 0
 }
 
-func matchesFor(project *model.Project, context path.Path, segment string) ([]string, int) {
-	children := children(project, context)
+func matchesFor(project *model.Project, context path.Path, segment string, kinds []reflect.Kind) ([]string, int) {
+	children := children(project, context, kinds)
 	keys := keys(children)
 
 	if contains(keys, segment) {
-		if children[segment] == reflect.Struct {
-			return []string{segment}, 0
-		} else {
+		if children[segment] == reflect.Slice {
 			return []string{segment}, '['
+		} else {
+			return []string{segment}, 0
 		}
 	} else {
 		var matches []string
@@ -147,10 +146,10 @@ func matchesFor(project *model.Project, context path.Path, segment string) ([]st
 				}
 			}
 			if len(matches) == 1 {
-				if children[matches[0]] == reflect.Struct {
-					return matches, 0
-				} else {
+				if children[matches[0]] == reflect.Slice {
 					return matches, '['
+				} else {
+					return matches, 0
 				}
 			} else {
 				return matches, 0
@@ -159,7 +158,7 @@ func matchesFor(project *model.Project, context path.Path, segment string) ([]st
 	}
 }
 
-func children(project *model.Project, context path.Path) map[string]reflect.Kind {
+func children(project *model.Project, context path.Path, kinds []reflect.Kind) map[string]reflect.Kind {
 	var matches = make(map[string]reflect.Kind)
 
 	obj, err := context.Resolve(project)
@@ -168,9 +167,18 @@ func children(project *model.Project, context path.Path) map[string]reflect.Kind
 		if err == nil {
 			for field, tag := range tags {
 				kind, _ := reflections.GetFieldKind(obj, field)
-				if kind == reflect.Struct || kind == reflect.Slice {
+				// if kinds are specified, at least one must match, otherwise accept any kind
+				if len(kinds) != 0 {
+					for _, k := range kinds {
+						if kind == k {
+							matches[tag] = kind
+							break
+						}
+					}
+				} else {
 					matches[tag] = kind
 				}
+
 			}
 		}
 	}

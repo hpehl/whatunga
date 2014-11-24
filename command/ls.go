@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
 	"github.com/hpehl/whatunga/path"
+	"reflect"
 )
 
 var lsUsage = "ls [path]"
@@ -15,7 +16,9 @@ var ls = Command{
 	lsUsage,
 	`Lists the model of the current context or specified path`,
 	// tab completer
-	completion,
+	func(project *model.Project, query, cmdline string) ([]string, int) {
+		return completion(project, query, cmdline, []reflect.Kind{})
+	},
 	// action
 	func(project *model.Project, args []string) error {
 		var context path.Path
