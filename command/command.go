@@ -29,7 +29,6 @@ func (r registry) forEach(fn func(cmd Command)) {
 var Registry = make(registry)
 
 func init() {
-	Registry.Add(show)
 	Registry.Add(cd)
 	Registry.Add(ls)
 	Registry.Add(add)
