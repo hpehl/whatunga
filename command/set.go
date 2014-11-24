@@ -13,9 +13,9 @@ var set = Command{
 	setUsage,
 	"Modifies an object / attribute of the project model. TODO: Describe path for set.",
 	// tab completer
-	func(_, _ string) []string {
+	func(_ *model.Project, _, _ string) ([]string, int) {
 		// TODO not yet implemented
-		return nil
+		return nil, 0
 	},
 	// action
 	func(_ *model.Project, args []string) error {
@@ -25,6 +25,8 @@ var set = Command{
 		if len(args) > 2 {
 			return fmt.Errorf("Too many arguments. Usage: %s", setUsage)
 		}
+		// TODO not yet implemented
+		fmt.Println("Not yet implemented!")
 		return nil
 	},
 }

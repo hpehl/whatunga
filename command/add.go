@@ -30,15 +30,16 @@ These patterns can contain specific variables:
 It's up to the user to choose a pattern which generates unique names.
 Non-unique names will lead to an error.`,
 	// tab completer
-	func(_, _ string) []string {
+	func(_ *model.Project, _, _ string) ([]string, int) {
 		// TODO not yet implemented
-		return nil
+		return []string{"not", "yet", "implemented"}, ' '
 	},
 	// action
 	func(_ *model.Project, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("Missing arguments. Usage: %s", addUsage)
 		}
+		fmt.Println("Not yet implemented!")
 		return nil
 	},
 }

@@ -13,9 +13,9 @@ var rm = Command{
 	rmUsage,
 	"Removes an object from the project model. TODO: Describe path for rm.",
 	// tab completer
-	func(_, _ string) []string {
+	func(_ *model.Project, _, _ string) ([]string, int) {
 		// TODO not yet implemented
-		return nil
+		return nil, 0
 	},
 	// action
 	func(_ *model.Project, args []string) error {
@@ -25,6 +25,8 @@ var rm = Command{
 		if len(args) > 1 {
 			return fmt.Errorf("Too many arguments. Usage: %s", rmUsage)
 		}
+		// TODO not yet implemented
+		fmt.Println("Not yet implemented!")
 		return nil
 	},
 }

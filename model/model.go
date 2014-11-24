@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hpehl/whatunga/template"
+	"github.com/jmcvetta/randutil"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
 	"strings"
@@ -67,6 +69,13 @@ var ModelVersions = map[string]Target{
 
 // ------------------------------------------------------ project model
 
+type Foo struct {
+	Bar Bar `json:"bar"`
+}
+type Bar struct {
+	Name string `json:"name"`
+}
+
 type Project struct {
 	Name         string        `json:"name"`
 	Version      string        `json:"version"`
@@ -122,10 +131,47 @@ func NewProject(directory string, name string, version string, target Target) (*
 		Hosts:        []Host{},
 		Users:        []User{},
 	}
+
+	// add some data to test the commands
+	addTestData(project)
+
 	if err := project.Save(); err != nil {
 		return nil, err
 	}
 	return project, nil
+}
+
+func addTestData(project *Project) {
+	var serverGroups = 5 + rand.Intn(5)
+	project.ServerGroups = make([]ServerGroup, serverGroups)
+	for i := 0; i < serverGroups; i++ {
+		project.ServerGroups[i] = ServerGroup{
+			Name:          value(randutil.AlphaString(10)),
+			Profile:       value(randutil.AlphaString(10)),
+			SocketBinding: value(randutil.AlphaString(10)),
+		}
+	}
+
+	var hosts = 5 + rand.Intn(5)
+	project.Hosts = make([]Host, hosts)
+	for i := 0; i < hosts; i++ {
+		project.Hosts[i] = Host{
+			Name: value(randutil.AlphaString(10)),
+		}
+
+		servers := 1 + rand.Intn(4)
+		project.Hosts[i].Servers = make([]Server, servers)
+		for j := 0; j < servers; j++ {
+			project.Hosts[i].Servers[j] = Server{
+				Name:        value(randutil.AlphaString(10)),
+				ServerGroup: value(randutil.AlphaString(10)),
+			}
+		}
+	}
+}
+
+func value(v string, _ error) string {
+	return v
 }
 
 func createTemplate(target Target, name string) error {
@@ -192,34 +238,18 @@ type Config struct {
 	DockerRemoteAPI string    `json:"docker-remote-api"`
 }
 
-func (c Config) String() string {
-	data, err := json.MarshalIndent(c, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("Error generating configuration: %s", err.Error())
-	}
-	return string(data)
-}
-
 type Templates struct {
 	Domain     string `json:"domain"`
-	HostMaster string `json:"host-master`
-	HostSlave  string `json:host-slave`
+	HostMaster string `json:"host-master"`
+	HostSlave  string `json:"host-slave"`
 }
 
 type ServerGroup struct {
 	Name          string       `json:"name"`
 	Profile       string       `json:"profile"`
 	SocketBinding string       `json:"socket-binding"`
-	Jvm           Jvm          `json:"jvm"`
+	Jvm           *Jvm         `json:"jvm"`
 	Deployments   []Deployment `json:"deployments"`
-}
-
-func (sg ServerGroup) String() string {
-	data, err := json.MarshalIndent(sg, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("Error generating server group: %s", err.Error())
-	}
-	return string(data)
 }
 
 type Deployment struct {
@@ -232,37 +262,27 @@ type Host struct {
 	Name    string   `json:"name"`
 	DC      bool     `json:"domain-controller"`
 	Servers []Server `json:"servers"`
-	Jvm     Jvm      `json:"jvm"`
-}
-
-func (h Host) String() string {
-	data, err := json.MarshalIndent(h, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("Error generating host: %s", err.Error())
-	}
-	return string(data)
+	Jvm     *Jvm     `json:"jvm"`
 }
 
 type Server struct {
 	Name        string `json:"name"`
 	ServerGroup string `json:"server-group"`
-	PortOffset  uint   `json:"port-offset"`
+	PortOffset  int    `json:"port-offset"`
 	AutoStart   bool   `json:"auto-start"`
-	Jvm         Jvm    `json:"jvm"`
+	Jvm         *Jvm   `json:"jvm"`
 }
 
-type Memory string
-
 type BoundedMemory struct {
-	Initial Memory `json:"initial"`
-	Max     Memory `json:"max"`
+	Initial string `json:"initial"`
+	Max     string `json:"max"`
 }
 
 type Jvm struct {
 	Name    string        `json:"name"`
 	Heap    BoundedMemory `json:"heap"`
-	PermGem Memory        `json:"perm-gen"`
-	Stack   Memory        `json:"stack"`
+	PermGem string        `json:"perm-gen"`
+	Stack   string        `json:"stack"`
 	Options []string      `json:"options"`
 }
 

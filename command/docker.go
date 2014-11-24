@@ -16,7 +16,7 @@ var docker = Command{
     - create: Creates docker images based on the current project model.
     - start: Starts the docker images.`,
 	// tab completer
-	func(query, _ string) []string {
+	func(_ *model.Project, query, _ string) ([]string, int) {
 		var results []string
 		subCommands := [...]string{"create", "push", "start"}
 		for _, subCommand := range subCommands {
@@ -24,7 +24,7 @@ var docker = Command{
 				results = append(results, subCommand)
 			}
 		}
-		return results
+		return results, ' '
 	},
 	// action
 	func(_ *model.Project, args []string) error {
@@ -34,13 +34,14 @@ var docker = Command{
 		if len(args) > 1 {
 			return fmt.Errorf("Too many arguments. Usage: %s", dockerUsage)
 		}
+		// TODO not yet implemented
 		switch args[0] {
 		case "create":
-			fmt.Printf("\nDocker create...\n")
+			fmt.Printf("Docker create...\n")
 		case "push":
-			fmt.Printf("\nDocker push...\n")
+			fmt.Printf("Docker push...\n")
 		case "start":
-			fmt.Printf("\nDocker start...\n")
+			fmt.Printf("Docker start...\n")
 		default:
 			return fmt.Errorf(`Unsupported argument "%s". Usage: %s`, args[0], dockerUsage)
 		}

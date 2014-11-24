@@ -3,32 +3,31 @@ package command
 import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
+	"github.com/hpehl/whatunga/path"
+	"reflect"
 )
 
-var cdUsage = "cd <path>"
+var cdUsage = "cd <path> | cd .. | cd /"
 
 var cd = Command{
 	"cd",
 	"Changes the current context to the specified path.",
 	cdUsage,
-	`Changes the current context to the specified path. The path addresses an
-object or attribute in the project model. Could be a specific attribute like
-"host-master.server1.port-offset" or an object like "main-server-group".
+	`Changes the current context to the specified path. The path specifies
+the name of an object in the project model like "config.templates.domain".
 
-If the object is part of a collection you can also use an index (zero based)
-on objects type. To avoid naming conflicts you have to prefix the relevant
-path segment with ' in that case:
+If the object is part of a collection you can also use index on the objects
+type. Both numeric and name based indizes are supported:
 
-    set 'hosts[2].servers[4].auto-start true
+	cd hosts[master].servers[4]
 
-sets the auto start flag of the fifth server of the third host`,
+changes the current context to the fifth server of host "master".`,
 	// tab completer
-	func(_, _ string) []string {
-		// TODO not yet implemented
-		return nil
+	func(project *model.Project, query, cmdline string) ([]string, int) {
+		return completion(project, query, cmdline, []reflect.Kind{reflect.Struct, reflect.Slice})
 	},
 	// action
-	func(_ *model.Project, args []string) error {
+	func(project *model.Project, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("Missing argument. Usage: %s", cdUsage)
 		}
@@ -36,8 +35,27 @@ sets the auto start flag of the fifth server of the third host`,
 			return fmt.Errorf("Too many arguments. Usage: %s", cdUsage)
 		}
 
-		// TODO validate path
-		model.WorkingDir = args[0]
+		if args[0] == ".." {
+			if path.CurrentPath.IsEmpty() {
+				return fmt.Errorf("Cannot go up one level: Already at root")
+			}
+			path.CurrentPath = path.CurrentPath[0 : len(path.CurrentPath)-1]
+		} else if args[0] == "/" {
+			if path.CurrentPath.IsEmpty() {
+				return fmt.Errorf("Already at root")
+			}
+			path.CurrentPath = path.CurrentPath[:0]
+		} else {
+			changeTo, err := path.Parse(args[0])
+			if err != nil {
+				return err
+			}
+			full := path.CurrentPath.Append(changeTo)
+			if _, err := full.Resolve(project); err != nil {
+				return err
+			}
+			path.CurrentPath = full
+		}
 		return nil
 	},
 }

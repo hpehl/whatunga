@@ -1,13 +1,12 @@
 package command
 
 import (
+	"errors"
 	"fmt"
-	"github.com/bobappleyard/readline"
 	"github.com/hpehl/whatunga/model"
-	"github.com/mitchellh/go-homedir"
-	"os"
-	"path"
 )
+
+var EXIT = errors.New("exit")
 
 var exit = Command{
 	"exit",
@@ -15,17 +14,12 @@ var exit = Command{
 	"exit",
 	"Get out of here.",
 	// tab completer
-	func(_, _ string) []string {
-		return nil
+	func(_ *model.Project, _, _ string) ([]string, int) {
+		return nil, 0
 	},
 	// action
 	func(_ *model.Project, _ []string) error {
-		home, err := homedir.Dir()
-		if err == nil {
-			readline.SaveHistory(path.Join(home, ".whatunga_history"))
-		}
-		fmt.Println("Haere rā")
-		os.Exit(0)
-		return nil
+		fmt.Println("Haere rā\n")
+		return EXIT
 	},
 }

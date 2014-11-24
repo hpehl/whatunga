@@ -10,7 +10,7 @@ Whatunga looks for a file named `whatunga.json` in the specified directory. If t
 
 The options are only valid when creating a new project; they're ignored when an existing project is loaded. 
 
-- `target`: Specifies the target using `<product>:<version>` with the following valid combinations:
+- `target` Specifies the target using `<product>:<version>` with the following valid combinations:
 
 	- wildfly:8.0
 	- wildfly:8.1
@@ -18,9 +18,9 @@ The options are only valid when creating a new project; they're ignored when an 
 	
 	If you omit the target, `wildfly:8.1` will be used.
 	
-- `name`: The name of the project. If you omit the name, the directories name is taken. 
+- `name` The name of the project. If you omit the name, the directories name is taken.
 
-- `version`: The version which is "1.0" by default.
+- `version` The version which is "1.0" by default.
 
 # Model
 
@@ -64,8 +64,7 @@ The following example shows a typical `whatunga.json` file:
           "runtime-name": "ticketmonster",
           "path": "deployments/ticketmonster.ear"
         }
-      ],
-      "jvm": null
+      ]
     },
     {
       "name": "full-group",
@@ -78,15 +77,13 @@ The following example shows a typical `whatunga.json` file:
           "max": "2GB"
         },
         "perm-gen": "256MB",
-        "stack": "128MB",
-        "options": null
+        "stack": "128MB"
       }
     },
     {
       "name": "ha-group",
       "profile": "ha-profile",
-      "socket-binding": "ha-sockets",
-      "jvm": null
+      "socket-binding": "ha-sockets"
     }
   ],
   "hosts": [
@@ -96,89 +93,49 @@ The following example shows a typical `whatunga.json` file:
       "servers": [
         {
           "name": "server-one",
-          "server-group": "default-group",
-          "port-offset": 0,
-          "auto-start": false,
-          "jvm": null
+          "server-group": "default-group"
         },
         {
           "name": "server-two",
           "server-group": "default-group",
-          "port-offset": 50,
-          "auto-start": false,
-          "jvm": null
+          "port-offset": 50
         },
         {
           "name": "server-three",
           "server-group": "full-group",
           "port-offset": 100,
-          "auto-start": true,
-          "jvm": null
+          "auto-start": true
         }
-      ],
-      "jvm": null
+      ]
     },
     {
       "name": "slave1",
-      "domain-controller": true,
       "servers": [
         {
           "name": "server-four",
-          "server-group": "full-group",
-          "port-offset": 0,
-          "auto-start": false,
-          "jvm": {
-            "name": "default-jvm",
-            "heap": {
-              "initial": "1GB",
-              "max": "2GB"
-            },
-            "perm-gen": "256MB",
-            "stack": "128MB",
-            "options": null
-          }
+          "server-group": "full-group"
         },
         {
           "name": "server-five",
           "server-group": "full-group",
-          "port-offset": 50,
-          "auto-start": false,
-          "jvm": null
+          "port-offset": 50
         }
-      ],
-      "jvm": null
+      ]
     },
     {
       "name": "slave2",
-      "domain-controller": true,
       "servers": [
         {
           "name": "server-six",
-          "server-group": "ha-group",
-          "port-offset": 0,
-          "auto-start": false,
-          "jvm": null
+          "server-group": "ha-group"
         },
         {
           "name": "server-seven",
           "server-group": "ha-group",
           "port-offset": 50,
-          "auto-start": true,
-          "jvm": {
-            "name": "default-jvm",
-            "heap": {
-              "initial": "1GB",
-              "max": "2GB"
-            },
-            "perm-gen": "128MB",
-            "stack": "",
-            "options": [
-              "-XFoo=Bar"
-            ]
-          }
+          "auto-start": true
         }
-      ],
-      "jvm": null
+      ]
     }
   ],
   "users": [
@@ -245,67 +202,52 @@ In this section you can add additional users which are added to the domain contr
 
 Whatunga provides a list of commands to show current settings, change the project model and interact with Docker.
 
-- `help [command]` : Shows the list of available commands or context sensitive help
+- `help [command]` Shows the list of available commands or context sensitive help
 
-- `show section` : Shows status information. Use one of the following sub commands to get specific information:
-    - `config`: Shows the current configuration
-    - `server-groups`: Lists all server groups
-    - `hosts`: Lists all hosts
-    - `source`: Prints the complete project model
-    - `docker`: Provides information about the Docker status and version
-    
-- `cd path`: Changes the current context to the specified path.
+- `cd path` Changes the current context to the specified path.
 
-- `add server-group|host|server|deployment|user value,... [--times=n]`: Adds one or several objects to the project model.
+- `ls [path]` Lists the model of the current context or specified path.
 
-- `set path value,...`: Modifies an object / attribute of the project model.
+- `add server-group|host|server|deployment|user value,... [--times=n]` Adds one or several objects to the project model.
 
-- `rm path`: Removes an object from the project model.
+- `set path value,...` Modifies an object / attribute of the project model.
 
-- `validate`: Checks whether the project model is valid.
+- `rm path` Removes an object from the project model.
 
-- `docker cmd`: Docker related commands
-	- `create`: Creates docker images based on the current project model.
-	- `start`: Starts the docker images.
+- `validate` Checks whether the project model is valid.
 
-- `exit`: Get out of here.
+- `docker cmd` Docker related commands
+	- `create` Creates docker images based on the current project model.
+	- `start` Starts the docker images.
 
-- `!cmd`: Executes cmd as shell command.
+- `exit` Get out of here.
 
 ## Path
 
-Specifies an object or attribute in the project model. Could be a specific attribute like `host-master.server1.port-offset` or an object like `main-server-group`. For bulk operations the path can include wildcards. 
+For some commands you need to provide a path. A path specifies an object or attribute in the project model. This could be a specific attribute like `hosts[host-master].servers[0].port-offset` or an object like `server-groups[main-server-group]`. For bulk operations the path can include a range (which follows the [rules for slices](http://tour.golang.org/#33) in the Go language).
 
 To set the auto start flag of all servers in the group `staging-group` use the following command:
 
-    set staging-group.*.auto-start true
+    set server-groups[staging-group].servers[:].auto-start true
     
-If the object is part of a collection you can also use an index (zero based) or a range (from..to) together with the objects type. To avoid naming conflicts you have to prefix the relevant path segment with `'` in that case: 
-
-	# Set the auto start flag of the fifth server of the third host
-	set 'hosts[2].servers[4].auto-start true
-	
-	// set the profiles of server groups 3, 4 and 5 to "full-ha"
-	set 'server-groups[2..4].profile full-ha
-
 ## Value
 
-Can be simple values like `100`, `true` or `"128MB"` or full JSON encoded objects like `{"name":"s2jvm","heap":{"initial":"1GB","max":"2GB"},"options":["-server"]}`. 
+Values can be simple values like `100`, `true` or `"128MB"` or full JSON encoded objects like `{"name":"s2jvm","heap":{"initial":"1GB","max":"2GB"},"options":["-server"]}`.
 
-If the path addresses multiple objects you can provide multiple values:
+If the path specified multiple objects you can provide multiple values:
 
 	# Set the auto start flag of the servers of host master to the given values
-	set master.*.auto-start true,false,false,true
+	set hosts[master].servers[:].auto-start true,false,false,true
 
 ## Naming
 
 When adding multiple server groups, hosts and servers, whatunga uses a naming pattern to create unique names. These patterns can contain specific variables: 
 
-- `%w`: Resolves to the project name
-- `%v`: Resolves to the project version 
-- `%h`: Inserts the current host name (applicable when adding servers to a host)
-- `%g`: Inserts the current server group name (applicable when adding servers to a server group)
-- `[n]%c`: A counter which starts at zero and which is incremented for each added object.
+- `%w` Resolves to the project name
+- `%v` Resolves to the project version
+- `%h` Inserts the current host name (applicable when adding servers to a host)
+- `%g` Inserts the current server group name (applicable when adding servers to a server group)
+- `[n]%c` A counter which starts at zero and which is incremented for each added object.
 
 It's up to the user to choose a pattern which generates unique names. Non-unique names will lead to an error.  
 
@@ -313,43 +255,48 @@ It's up to the user to choose a pattern which generates unique names. Non-unique
 
 The following sample shows a list of commands to setup a domain with three server groups, four hosts, eight servers and one deployment:
 
-```sh
+```
 # Add three server groups and set the specified profiles. 
 # As no socket binding is specified, the first socket binding defined 
 # in the domain template is used. 
 add server-group group%c --times=3
-set group*.profile dev,staging,prod
+set server-groups[:].profile dev,staging,prod
     
 # Assign a deployment to the dev server group
-cd group0
-!cp /tmp/ticketmonster.ear deployments
+cd server-groups[0]
 add deployment deployments/ticketmonster.ear
-set 'deployment[0].runtime-name ticketmonster
+set deployments[0].runtime-name ticketmonster
 cd ..
 
 # Add a single host named "master" using default values. After that the
 # domain controller flag is set to true. Finally add three more hosts.
 add host master
-set master.domain-controller true
+set hosts[master].domain-controller true
 add host slave0,slave1,slave2
 
 # For each slave add servers. By default the port offset is incremented
 # by 50,  the server group is assigned to the first defined server group 
 # and auto start is disabled 
-cd slave0; add server server%c --times=3; cd ..
-cd slave1; add server server%3c --times=3; cd ..
-cd slave2; add server server6,lastserver; cd ..
+cd slave0
+add server server%c --times=3
+cd ..
+cd slave1
+add server server%3c --times=3
+cd ..
+cd slave2
+add server server6,lastserver
+cd ..
 
 # Change defaults
-set slave0.server0.auto-start true
+set hosts[slave0].servers[server0].auto-start true
 
-set slave1.server*.server-group staging,staging,qa
-set slave1.server*.auto-start false,true,true
+set hosts[slave1].servers[0:3].server-group staging,staging,qa
+set hosts[slave1].servers[0:3].auto-start false,true,true
 
-set slave2.*.server-group qa,qa,prod
-set slave2.*.port-offset 0+20
+set hosts[slave2].servers[:].server-group qa,qa,prod
+set hosts[slave2].servers[:].port-offset 0+20
 
-cd 'hosts[2].'servers[2]
+cd hosts[2].servers[2]
 set jvm {"name":"s2jvm","heap":{"initial":"1GB","max":"2GB"},"options":["-server"]}
 cd ..
 ```
