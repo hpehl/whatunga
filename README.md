@@ -277,13 +277,13 @@ add host slave0,slave1,slave2
 # For each slave add servers. By default the port offset is incremented
 # by 50,  the server group is assigned to the first defined server group 
 # and auto start is disabled 
-cd slave0
+cd hosts[slave0]
 add server server%c --times=3
 cd ..
-cd slave1
+cd hosts[slave1]
 add server server%3c --times=3
 cd ..
-cd slave2
+cd hosts[slave2]
 add server server6,lastserver
 cd ..
 
@@ -298,7 +298,7 @@ set hosts[slave2].servers[:].port-offset 0+20
 
 cd hosts[2].servers[2]
 set jvm {"name":"s2jvm","heap":{"initial":"1GB","max":"2GB"},"options":["-server"]}
-cd ..
+cd /
 ```
 
 # Limitations
