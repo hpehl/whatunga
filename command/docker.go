@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-var dockerUsage = "docker create|push|start"
+var dockerSubCommands = []string{"create", "push", "start"}
+var dockerUsage = "docker " + strings.Join(dockerSubCommands, "|")
 
 var docker = Command{
 	"docker",
@@ -18,8 +19,7 @@ var docker = Command{
 	// tab completer
 	func(_ *model.Project, query, _ string) ([]string, int) {
 		var results []string
-		subCommands := [...]string{"create", "push", "start"}
-		for _, subCommand := range subCommands {
+		for _, subCommand := range dockerSubCommands {
 			if strings.HasPrefix(subCommand, query) {
 				results = append(results, subCommand)
 			}

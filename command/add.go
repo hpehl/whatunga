@@ -3,9 +3,12 @@ package command
 import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
+	"strings"
 )
 
-var addUsage = "add server-group|host|server|deployment|user <value,...> [--times=n]"
+var addSubCommands = []string{"server-group", "host", "server", "deployment", "user"}
+var timesOption = "--times"
+var addUsage = "add " + strings.Join(addSubCommands, "|") + " <value,...> [" + timesOption + "=n]"
 
 var add = Command{
 	"add",
@@ -30,9 +33,51 @@ These patterns can contain specific variables:
 It's up to the user to choose a pattern which generates unique names.
 Non-unique names will lead to an error.`,
 	// tab completer
-	func(_ *model.Project, _, _ string) ([]string, int) {
-		// TODO not yet implemented
-		return []string{"not", "yet", "implemented"}, ' '
+	func(_ *model.Project, query, cmdline string) ([]string, int) {
+		var matches []string
+
+		tokens := strings.Fields(cmdline)
+		if len(tokens) == 1 && query == "" {
+			// just the command was given
+			matches = append(matches, addSubCommands...)
+			matches = append(matches, timesOption)
+		} else {
+			var subCommandGiven bool
+			var timesOptionGiven bool
+			for _, token := range tokens {
+				for _, cmd := range addSubCommands {
+					if token == cmd {
+						subCommandGiven = true
+						break
+					}
+				}
+				if strings.HasPrefix(token, timesOption) {
+					timesOptionGiven = true
+				}
+			}
+			if !subCommandGiven {
+				if query == "" {
+					matches = append(matches, addSubCommands...)
+				} else {
+					for _, cmd := range addSubCommands {
+						if strings.HasPrefix(cmd, query) {
+							matches = append(matches, cmd)
+						}
+					}
+				}
+			}
+			if !timesOptionGiven {
+				if strings.HasPrefix(timesOption, query) {
+					matches = append(matches, timesOption)
+				}
+			}
+		}
+
+		if len(matches) == 1 && matches[0] == timesOption {
+			return matches, '='
+		} else {
+			return matches, ' '
+		}
 	},
 	// action
 	func(_ *model.Project, args []string) error {
