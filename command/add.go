@@ -19,16 +19,25 @@ object type:
     - server-group: The name(s) of the server groups.
     - host:         The name(s) of the hosts.
     - server:       The name(s) of the servers.
-    - deployment:   The path to the deployment artifact. Multiple values are not allowed here
-    - user:         The username(s) and password(s) separated with ":" as in "foo:bar"
+    - deployment:   The path to the deployment artifact.
+    				Multiple values are not allowed here
+    - user:         The username(s) and password(s) separated with ":"
+    				as in "foo:bar"
+
+To add certain objects, you need to change the context first: To add servers
+you need to change the context to a host; to add deployments you need to change
+the context to a server group.
 
 When adding multiple values, you can use a pattern to create unique names.
 These patterns can contain specific variables:
     - %w: Resolves to the project name
     - %v: Resolves to the project version
-    - %h: Inserts the current host name (applicable when adding servers to a host)
-    - %g: Inserts the current server group name (applicable when adding servers to a server group)
-    - [n]%c: A counter which starts at zero and which is incremented for each added object.
+    - %h: Inserts the current host name (applicable when adding servers
+      to a host)
+    - %g: Inserts the current server group name (applicable when adding
+      deployments to a server group)
+    - [n]%c: A counter which starts at zero and which is incremented for
+      each added object.
 
 It's up to the user to choose a pattern which generates unique names.
 Non-unique names will lead to an error.`,

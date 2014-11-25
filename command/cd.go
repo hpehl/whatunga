@@ -11,17 +11,19 @@ var cdUsage = "cd <path> | cd .. | cd /"
 
 var cd = Command{
 	"cd",
-	"Changes the current context to the specified path.",
+	"Changes the current context to the given path.",
 	cdUsage,
-	`Changes the current context to the specified path. The path specifies
-the name of an object in the project model like "config.templates.domain".
+	`Changes the current context to the given path. The path is composed of
+the names of the objects in the project model seperated with dots:
 
-If the object is part of a collection you can also use index on the objects
+	config.templates.domain
+
+If the object is part of a collection you can also use an index on the objects
 type. Both numeric and name based indizes are supported:
 
-	cd hosts[master].servers[4]
+	hosts[master].servers[4]
 
-changes the current context to the fifth server of host "master".`,
+addresses the fifth server of host "master".`,
 	// tab completer
 	func(project *model.Project, query, cmdline string) ([]string, int) {
 		return completion(project, query, cmdline, []reflect.Kind{reflect.Struct, reflect.Slice})
