@@ -16,14 +16,14 @@ var cd = Command{
 	`Changes the current context to the given path. The path is composed of
 the names of the objects in the project model seperated with dots:
 
-	config.templates.domain
+    config.templates.domain
 
 If the object is part of a collection you can also use an index on the objects
 type. Both numeric and name based indizes are supported:
 
-	hosts[master].servers[4]
+    hosts[master].servers[4]
 
-addresses the fifth server of host "master".`,
+Addresses the fifth server of host "master".`,
 	// tab completer
 	func(project *model.Project, query, cmdline string) ([]string, int) {
 		return completion(project, query, cmdline, []reflect.Kind{reflect.Struct, reflect.Slice})

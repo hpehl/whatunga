@@ -14,6 +14,7 @@ var docker = Command{
 	"Docker related commands",
 	dockerUsage,
 	`Docker related commands
+
     - create: Creates docker images based on the current project model.
     - start: Starts the docker images.`,
 	// tab completer
