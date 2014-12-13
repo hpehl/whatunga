@@ -54,6 +54,7 @@ var rangeSegment = regexp.MustCompile(`^([\w-]+)\[((\d*)(:)(\d*))\]$`)
 
 // the current path which is used by the commands and the shell
 var CurrentPath Path = []Segment{}
+var LastPath Path
 
 // ------------------------------------------------------ path functions
 
