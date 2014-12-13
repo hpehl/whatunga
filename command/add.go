@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"github.com/hpehl/whatunga/model"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -89,7 +88,7 @@ Non-unique names will lead to an error.`,
 			//cmdline:          "%s"
 			//query:            "%s"
 			//tokens:           %v
-			//subCommandGive:   %t
+			//subCommandGiven:  %t
 			//timesOptionGiven: %t
 			//-+-+-+-+-+
 			//`, cmdline, query, tokens, subCommandGiven, timesOptionGiven)
@@ -99,7 +98,7 @@ Non-unique names will lead to an error.`,
 					matches = append(matches, addSubCommands...)
 				} else {
 					for _, subCommand := range addSubCommands {
-						if strings.HasPrefix(subCommand, query) {
+						if subCommand != query && strings.HasPrefix(subCommand, query) {
 							matches = append(matches, subCommand)
 						}
 					}
@@ -112,11 +111,11 @@ Non-unique names will lead to an error.`,
 			}
 		}
 
-		log.Printf(`
--+-+-+-+-+
-matches: %v
--+-+-+-+-+
-`, matches)
+		//		log.Printf(`
+		//-+-+-+-+-+
+		//matches: %v
+		//-+-+-+-+-+
+		//`, matches)
 
 		if len(matches) == 1 && matches[0] == timesOption {
 			return matches, '='
