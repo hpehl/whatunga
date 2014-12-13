@@ -41,6 +41,47 @@ func init() {
 	}
 }
 
+func Start(info string, project *model.Project) {
+	registerCompleter(project)
+	fmt.Printf("%s\n%s\n%s\n", Logo, version(), info)
+
+	for {
+		cmdline, err := Readline(prompt(project))
+		if err == io.EOF {
+			break // Ctrl-C
+		} else if err != nil {
+			fmt.Fprintln(os.Stderr, "Error reading command: ", err)
+			break
+		}
+		if cmdline == "" {
+			continue
+		}
+
+		AddHistory(cmdline)
+		tokens := strings.Fields(cmdline)
+		cmd, valid := command.Registry[tokens[0]]
+		if !valid {
+			fmt.Printf("\nUnknown command: \"%s\"\n", tokens[0])
+			continue
+		}
+		if cmd.Name != "cd" {
+			fmt.Println() // general new line before each cmd execution for better formatting
+		}
+		err = cmd.Action(project, tokens[1:])
+		if err == command.EXIT {
+			AddHistory(cmdline)
+			break
+		} else if err != nil {
+			fmt.Printf("%s\n", err.Error())
+		}
+	}
+
+	home, err := homedir.Dir()
+	if err == nil {
+		SaveHistory(path.Join(home, ".whatunga_history"))
+	}
+}
+
 func registerCompleter(project *model.Project) {
 	Completer = func(query, ctx string) []string {
 		// the default which can be overridden by custom command completer functions
@@ -75,46 +116,6 @@ func registerCompleter(project *model.Project) {
 			}
 		}
 		return matches
-	}
-}
-
-func Start(info string, project *model.Project) {
-	registerCompleter(project)
-	fmt.Printf("%s\n%s\n%s\n", Logo, version(), info)
-
-	for {
-		cmdline, err := Readline(prompt(project))
-		if err == io.EOF {
-			break // Ctrl-C
-		} else if err != nil {
-			fmt.Fprintln(os.Stderr, "Error reading command: ", err)
-			break
-		}
-		if cmdline == "" {
-			continue
-		}
-
-		AddHistory(cmdline)
-		fmt.Println() // general new line before each cmd execution for better formatting
-
-		tokens := strings.Fields(cmdline)
-		cmd, valid := command.Registry[tokens[0]]
-		if !valid {
-			fmt.Printf("Unknown command: \"%s\"\n", tokens[0])
-			continue
-		}
-		err = cmd.Action(project, tokens[1:])
-		if err == command.EXIT {
-			AddHistory(cmdline)
-			break
-		} else if err != nil {
-			fmt.Printf("%s\n", err.Error())
-		}
-	}
-
-	home, err := homedir.Dir()
-	if err == nil {
-		SaveHistory(path.Join(home, ".whatunga_history"))
 	}
 }
 
