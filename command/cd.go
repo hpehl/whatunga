@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-var cdUsage = "cd <path> | cd .. | cd /"
+var cdUsage = "cd <path> | cd .. | cd / | cd -"
 
 var cd = Command{
 	"cd",
@@ -18,7 +18,7 @@ the names of the objects in the project model seperated with dots:
 
     config.templates.domain
 
-If the object is part of a collection you can also use an index on the objects
+If the object is part of a collection you can also use an index on the object's
 type. Both numeric and name based indizes are supported:
 
     hosts[master].servers[4]
@@ -41,12 +41,20 @@ Addresses the fifth server of host "master".`,
 			if path.CurrentPath.IsEmpty() {
 				return fmt.Errorf("Cannot go up one level: Already at root")
 			}
-			path.CurrentPath = path.CurrentPath[0 : len(path.CurrentPath)-1]
+			internalCd(path.CurrentPath[0 : len(path.CurrentPath)-1])
+
 		} else if args[0] == "/" {
 			if path.CurrentPath.IsEmpty() {
 				return fmt.Errorf("Already at root")
 			}
-			path.CurrentPath = path.CurrentPath[:0]
+			internalCd(path.CurrentPath[:0])
+
+		} else if args[0] == "-" {
+			if path.LastPath == nil {
+				return fmt.Errorf("No previous path")
+			}
+			internalCd(path.LastPath)
+
 		} else {
 			changeTo, err := path.Parse(args[0])
 			if err != nil {
@@ -56,8 +64,13 @@ Addresses the fifth server of host "master".`,
 			if _, err := full.Resolve(project); err != nil {
 				return err
 			}
-			path.CurrentPath = full
+			internalCd(full)
 		}
 		return nil
 	},
+}
+
+func internalCd(p path.Path) {
+	path.LastPath = path.CurrentPath
+	path.CurrentPath = p
 }
